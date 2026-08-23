@@ -64,6 +64,20 @@
 ;     get-gyro code is gone.
 ;   - No "walk mode" existed in this script to begin with, so there was
 ;     nothing to remove for that.
+;
+; v1.7 changes:
+;   - The idle display (byte 11) in Race mode used to show battery % while
+;     stopped - the "b3" reported on a real dashboard was very likely just
+;     the battery percentage (e.g. "63") misread on this font, not a fault.
+;     Renamed show-batt-in-idle -> show-mot-temp-in-idle and it now shows
+;     motor temperature instead while stopped in Race mode.
+;   - button-logic now only counts a button edge towards presses while the
+;     board is actually stationary (same threshold as button-safety-speed).
+;     Previously, an edge picked up while the wheel was still spinning
+;     (e.g. noise on the button line from a hard e-brake stop with no field
+;     weakening) was counted immediately and could fire a mode/lock toggle
+;     the moment the wheel came to a stop, even though nobody touched the
+;     button. Edges seen while moving are now discarded via reset-button.
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -75,7 +89,7 @@
 (def min-adc-brake 0.3) ; raised from 0.1 - avoids false "brake held" from ADC drift/noise
 (def temp-warning-motor 100) ; temperature warning for motor in degree celsius
 (def temp-warning-fet 80) ; temperature warning for fet in degree celsius
-(def show-batt-in-idle 1)
+(def show-mot-temp-in-idle 1) ; show motor temp (instead of speed) on the dash while stopped, in Race mode
 (def min-speed 1) ; minimum speed in km/h to enable throttle and brake
 (def button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
 
@@ -271,10 +285,10 @@
 
         (if (= lock 1)
             (bufset-u8 tx-frame 11 0) ; lock display
-            (if (= (+ show-batt-in-idle unlock) 2)
+            (if (= (+ show-mot-temp-in-idle unlock) 2) ; only in Race mode (unlock=1)
                 (if (> current-speed 1)
                     (bufset-u8 tx-frame 11 current-speed)
-                    (bufset-u8 tx-frame 11 battery))
+                    (bufset-u8 tx-frame 11 (get-temp-mot)))
                 (bufset-u8 tx-frame 11 current-speed)
             )
         )
@@ -484,10 +498,13 @@
                 )
 
                 (if (> buttonold button)
-                    {
-                        (set 'presses (+ presses 1))
-                        (set 'press-time (systime))
-                    }
+                    (if (<= (get-speed) button-safety-speed) ; only count presses while actually stationary
+                        {
+                            (set 'presses (+ presses 1))
+                            (set 'press-time (systime))
+                        }
+                        (reset-button) ; moving (e.g. spinning down under e-brake) - discard, not a real button press
+                    )
                     (button-apply button)
                 )
 
