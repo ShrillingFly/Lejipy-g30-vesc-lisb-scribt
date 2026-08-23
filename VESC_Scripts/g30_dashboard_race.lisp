@@ -10,6 +10,8 @@
 ; get-batt() which already accounts for whatever cutoffs you set there.
 ;
 ; Changelog (newest first) - full details at the bottom of the file:
+;   v3.0  freely configurable dashboard display (standing still / riding, per profile);
+;         new Original-profile speed and watt values
 ;   v2.0  smoothed the speed limiter (speed-limit-start) to kill noise at the cap
 ;   v1.9  race-eco: 20A field weakening (race-drive/race-sport untouched)
 ;   v1.8  robust 3-sample button debounce (fixes phantom presses from brake noise)
@@ -33,10 +35,10 @@
 ; of your configured motor max current) | watts = watt ceiling | fw = field
 ; weakening current in A (0 = off)
 
-; Original profile (default on power-up/lock, unchanged from upstream)
-(def eco-speed         (/ 7 3.6))    (def eco-current         0.6)  (def eco-watts         400)     (def eco-fw         0)
-(def drive-speed       (/ 17 3.6))   (def drive-current       0.7)  (def drive-watts       500)     (def drive-fw       0)
-(def sport-speed       (/ 22 3.6))   (def sport-current       1.0)  (def sport-watts       700)     (def sport-fw       0)
+; Original profile (default on power-up/lock)
+(def eco-speed         (/ 15 3.6))   (def eco-current         0.6)  (def eco-watts         450)     (def eco-fw         0)
+(def drive-speed       (/ 20 3.6))   (def drive-current       0.7)  (def drive-watts       650)     (def drive-fw       0)
+(def sport-speed       (/ 22 3.6))   (def sport-current       1.0)  (def sport-watts       1000)    (def sport-fw       0)
 
 ; Race profile (2x button press while holding brake+throttle to toggle)
 (def race-eco-speed    (/ 200 3.6))  (def race-eco-current    1.0)  (def race-eco-watts    100000)  (def race-eco-fw    20)
@@ -45,13 +47,40 @@
 
 (def race-enabled 1) ; 0 disables the Race-profile toggle gesture entirely (brake+throttle+2x press just does lock/unlock instead)
 
+; --- Dashboard display ------------------------------------------------
+; The dash has two fields this script can freely write to:
+;
+;   MAIN   - the big number in the middle. Normally the speed.
+;   BLINK  - the error-code field. Anything non-zero here shows up as a
+;            RED BLINKING number. A real VESC fault always takes priority
+;            over whatever you configure here, so you never lose a real
+;            error message. Set to 6 (off) if you want a clean display.
+;
+; For each field you can pick separately what is shown while the scooter
+; is STANDING STILL and while it is RIDING, once for the Original profile
+; and once for the Race profile. Put one of these codes in each slot:
+;
+;   0 = speed in km/h        3 = controller/FET temperature in degC
+;   1 = battery in %         4 = trip distance in km (since power-on)
+;   2 = motor temp in degC   5 = battery cell voltage x10 (41 = 4.1V)
+;                            6 = off / show nothing
+;
+; Code 5 needs the cell count set in VESC Tool (si-battery-cells); it
+; shows 0 if that isn't configured.
+
+;                        standing still        riding
+(def show-normal-idle    0)   (def show-normal-ride    0)  ; Original: always km/h
+(def show-race-idle      1)   (def show-race-ride      0)  ; Race: battery when stopped, km/h when riding
+
+(def blink-normal-idle   6)   (def blink-normal-ride   6)  ; Original: nothing blinking, ever
+(def blink-race-idle     6)   (def blink-race-ride     2)  ; Race: motor temp blinking red while riding
+
 ; --- Tuning / hardware behavior ---------------------------------------
 (def software-adc 1)
 (def min-adc-throttle 0.3) ; V - throttle-held threshold for button gestures (raised from 0.1 to avoid ADC drift/noise false-triggering)
 (def min-adc-brake 0.3) ; V - brake-held threshold for button gestures (raised from 0.1 to avoid ADC drift/noise false-triggering)
 (def temp-warning-motor 100) ; degC - motor temp warning icon threshold
 (def temp-warning-fet 80) ; degC - FET temp warning icon threshold
-(def show-mot-temp-in-idle 1) ; 1 = show motor temp (instead of speed) on the dash while stopped, in Race mode
 (def min-speed 1) ; km/h - minimum speed to enable throttle and brake
 (def button-safety-speed (/ 0.1 3.6)) ; km/h - button gestures only register below this speed (safety)
 (def speed-limit-start 0.5) ; fraction of max-speed where the speed governor starts tapering current (VESC default 0.8) - lower = earlier/more gradual taper, less noise when you hit the cap
@@ -178,10 +207,49 @@
     }
 )
 
+; Picks which of a field's four configured slots applies right now:
+; Original vs Race profile (unlock), standing still vs riding (moving).
+(defun pick-display(normal-idle normal-ride race-idle race-ride moving)
+    (if (= unlock 1)
+        (if moving race-ride race-idle)
+        (if moving normal-ride normal-idle)
+    )
+)
+
+; Keeps a value inside the 0-255 range a dashboard frame byte can hold
+; (temperatures can go negative in winter, distance can grow past 255).
+(defun clamp-u8(v)
+    (if (< v 0)
+        0
+        (if (> v 255) 255 v)
+    )
+)
+
+; Turns a display code (see the table at the top of the file) into the
+; number actually written into the dashboard frame.
+(defun dash-value(code speed battery)
+    (clamp-u8
+        (cond
+            ((= code 0) speed)                ; speed in km/h
+            ((= code 1) battery)              ; battery %
+            ((= code 2) (get-temp-mot))       ; motor temperature
+            ((= code 3) (get-temp-fet))       ; controller/FET temperature
+            ((= code 4) (/ (get-dist) 1000))  ; trip distance, get-dist is in meters
+            ((= code 5)                       ; cell voltage x10, 0 if cell count unset
+                (let ((cells (conf-get 'si-battery-cells)))
+                    (if (> cells 0) (* (/ (get-vin) cells) 10) 0)
+                )
+            )
+            (t 0)                             ; 6 (or anything else) = off
+        )
+    )
+)
+
 (defun update-dash(buffer) ; Frame 0x64
     {
         (var current-speed (abs (* (get-lowest-speed) 3.6)))
         (var battery (*(get-batt) 100))
+        (var moving (> current-speed 1))
 
         ; mode field (1=drive, 2=eco, 4=sport, 8=charge, 16=off, 32=lock)
         (if (= off 1)
@@ -216,18 +284,29 @@
             (bufset-u8 tx-frame 10 0)
         )
 
+        ; main field - content configured at the top of the file
         (if (= lock 1)
             (bufset-u8 tx-frame 11 0) ; lock display
-            (if (= (+ show-mot-temp-in-idle unlock) 2) ; only in Race mode (unlock=1)
-                (if (> current-speed 1)
-                    (bufset-u8 tx-frame 11 current-speed)
-                    (bufset-u8 tx-frame 11 (get-temp-mot)))
-                (bufset-u8 tx-frame 11 current-speed)
-            )
+            (bufset-u8 tx-frame 11
+                (dash-value
+                    (pick-display show-normal-idle show-normal-ride show-race-idle show-race-ride moving)
+                    current-speed battery))
         )
 
-        ; error field - shown as a real Ninebot G30 error code
-        (bufset-u8 tx-frame 12 (fault-to-ninebot (get-fault)))
+        ; blink field (the dash's error-code field, shows red and blinking).
+        ; A real VESC fault always wins here and is shown as a Ninebot G30
+        ; error code; only when there is no fault is the field free for the
+        ; readout configured at the top of the file.
+        (if (= (get-fault) 0)
+            (if (= lock 1)
+                (bufset-u8 tx-frame 12 0) ; lock display
+                (bufset-u8 tx-frame 12
+                    (dash-value
+                        (pick-display blink-normal-idle blink-normal-ride blink-race-idle blink-race-ride moving)
+                        current-speed battery))
+            )
+            (bufset-u8 tx-frame 12 (fault-to-ninebot (get-fault)))
+        )
 
         ; calc crc
 
@@ -634,3 +713,27 @@
 ;     instead of 4 separate lines per mode, so all the day-to-day tuning
 ;     values are visible and editable in one compact block right at the
 ;     top. No behavior changes in this version.
+;
+; v3.0 changes:
+;   - The dashboard display is now fully configurable from the top of the
+;     file. Two fields can be filled independently: the MAIN number and the
+;     BLINK field (the dash's error-code field, which renders anything
+;     non-zero as a red blinking number - the trick comes from Sharkboy's
+;     G30 script, which uses it to show the controller temperature while
+;     riding). Each field has four slots: standing still and riding, once
+;     for the Original profile and once for the Race profile, and each slot
+;     takes a code for what to show (speed, battery, motor temp, FET temp,
+;     trip distance, cell voltage, or off).
+;     Replaces the single fixed show-mot-temp-in-idle switch from v1.7.
+;   - A real VESC fault still always takes priority in the blink field and
+;     is shown as a Ninebot G30 error code, so configuring a readout there
+;     can never hide a genuine error.
+;   - Defaults: Original shows km/h at all times with nothing blinking;
+;     Race shows battery when stopped, km/h while riding, and blinks the
+;     motor temperature in red while riding. Set blink-race-ride to 6 to
+;     turn that off.
+;   - New values for dash-value are clamped to 0-255 before being written
+;     into the frame, since a frame field is a single byte (sub-zero
+;     temperatures or a trip over 255 km would otherwise wrap around).
+;   - Original profile retuned: eco 15 km/h / 450 W, drive 20 km/h / 650 W,
+;     sport 22 km/h / 1000 W. Race profile unchanged.
