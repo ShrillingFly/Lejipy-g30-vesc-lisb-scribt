@@ -9,7 +9,29 @@ Zeitpunkt) - siehe die Links unten.
 - **Zum Testen:** `Beta 3.0` - neue Features, noch nicht auf der Straße
   erprobt. Liegt auf einem eigenen Branch.
 
-## [Beta 3.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/beta-3.0) - frei konfigurierbare Anzeige (ungetestet)
+## So holst du dir eine bestimmte Version
+
+Jede Versions-Überschrift unten ist ein Link, der direkt die passende
+`g30_dashboard_race.lisp` öffnet. Von dort:
+
+1. Auf den Versionsnamen klicken - die Skript-Datei geht auf.
+2. Oben rechts über dem Code auf **Raw** (bzw. das Download-Symbol) klicken.
+   Dann steht der reine Text da, ohne GitHub-Drumherum.
+3. Alles markieren und kopieren (Strg+A, Strg+C), oder die Seite als Datei
+   speichern.
+4. In VESC Tool: Tab **VESC Dev Tools → Lisp** öffnen, den alten Inhalt
+   löschen, den neuen Code einfügen und auf **Upload** klicken.
+
+Alternativ das ganze Repo auf einmal holen:
+
+```
+git clone https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt
+```
+
+Danach mit `git checkout history/beta-1.2` (oder jedem anderen Branchnamen
+aus der Liste unten) zwischen den Versionen wechseln.
+
+## [Beta 3.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp) - frei konfigurierbare Anzeige (ungetestet)
 
 **Neu:**
 - Das Dashboard lässt sich jetzt komplett oben im Script konfigurieren. Zwei
@@ -39,13 +61,13 @@ Zeitpunkt) - siehe die Links unten.
   werden (ein Feld ist nur ein Byte; Minusgrade oder über 255 km würden sonst
   überlaufen).
 
-## [Alpha 2.0 (Stabil)](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/history/alpha-2.0) - bewährter Stand
+## [Alpha 2.0 (Stabil)](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-2.0/VESC_Scripts/g30_dashboard_race.lisp) - bewährter Stand
 
 Inhaltlich identisch mit `Release 1.0` - als bewusster Rückfall-Punkt markiert,
 weil diese Version auf echter Hardware gut funktioniert. Das ist der Stand, der
 auf `main` liegt.
 
-## [Release 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/history/release-1.0)
+## [Release 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/release-1.0/VESC_Scripts/g30_dashboard_race.lisp)
 
 **Neu:**
 - Alle Tuning-Werte (Original- und Race-Profil: Speed/Strom/Watt/Field Weakening)
@@ -56,7 +78,7 @@ auf `main` liegt.
 
 Keine Verhaltensänderung - reine Struktur/Lesbarkeit.
 
-## [Beta 2.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/history/beta-2.1) - Geräusch-Fix am Speed-Limit
+## [Beta 2.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-2.1/VESC_Scripts/g30_dashboard_race.lisp) - Geräusch-Fix am Speed-Limit
 
 **Behoben:**
 - Komische/singende Geräusche beim Erreichen des Speed-Limits, sowohl im
@@ -66,7 +88,7 @@ Keine Verhaltensänderung - reine Struktur/Lesbarkeit.
   Field Weakening) zu einem abrupten, hörbaren Eingriff. Auf 0.5 gesenkt für
   einen früheren, sanfteren Übergang.
 
-## [Beta 2.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/history/beta-2.0) - Field Weakening in Race-Eco
+## [Beta 2.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-2.0/VESC_Scripts/g30_dashboard_race.lisp) - Field Weakening in Race-Eco
 
 **Neu:**
 - 20A Field Weakening in Race-Eco aktiviert (lässt den Motor über seine normale
@@ -74,7 +96,7 @@ Keine Verhaltensänderung - reine Struktur/Lesbarkeit.
   erreichen zu können).
 - Race-Drive und Race-Sport bleiben bewusst ohne Field Weakening.
 
-## [Beta 1.4](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/history/beta-1.4) - Robustes Button-Debounce
+## [Beta 1.4](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-1.4/VESC_Scripts/g30_dashboard_race.lisp) - Robustes Button-Debounce
 
 **Behoben:**
 - Button-Pin wird jetzt per 3-fach-Mehrheitsentscheid über 60ms gelesen (statt
@@ -85,7 +107,7 @@ Keine Verhaltensänderung - reine Struktur/Lesbarkeit.
   Weakening. Entspricht dem Fix, den das Upstream-Projekt
   (m365fw/vesc_m365_dash) für genau dasselbe Problem übernommen hat.
 
-## [Beta 1.3](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/history/beta-1.3) - Motortemp-Anzeige + Button-Fix
+## [Beta 1.3](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-1.3/VESC_Scripts/g30_dashboard_race.lisp) - Motortemp-Anzeige + Button-Fix
 
 **Neu:**
 - Anzeige im Stillstand (nur Race-Modus) zeigt jetzt Motortemperatur statt
@@ -97,7 +119,7 @@ Keine Verhaltensänderung - reine Struktur/Lesbarkeit.
   Vorher konnte ein Signal während des Auslaufens/Bremsens einen ungewollten
   Mode- oder Lock-Wechsel auslösen, sobald das Rad zum Stillstand kam.
 
-## [Beta 1.2](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/history/beta-1.2) - Alarmanlage entfernt
+## [Beta 1.2](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-1.2/VESC_Scripts/g30_dashboard_race.lisp) - Alarmanlage entfernt
 
 **Entfernt:**
 - Komplette Alarm-/Diebstahlschutz-Logik: Gyro-Bewegungserkennung, Sirenen-Töne,
@@ -105,7 +127,7 @@ Keine Verhaltensänderung - reine Struktur/Lesbarkeit.
 - Lock ist jetzt nur noch eine reine Wegfahrsperre (Gas wird gekappt), ohne
   Sound oder Bewegungsmelder.
 
-## [Beta 1.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/history/beta-1.1) - Race geöffnet + Ninebot-Fehlercodes
+## [Beta 1.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-1.1/VESC_Scripts/g30_dashboard_race.lisp) - Race geöffnet + Ninebot-Fehlercodes
 
 **Neu:**
 - Race-Watt-Deckel wieder auf 100.000 W geöffnet (echte Leistung kommt vom
@@ -114,7 +136,7 @@ Keine Verhaltensänderung - reine Struktur/Lesbarkeit.
   Best-Effort-Zuordnung zu echten Ninebot-G30-Fehlercodes umgestellt, damit am
   Display etwas Nachschlagbares steht statt eines kryptischen VESC-Codes.
 
-## [Beta 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/history/beta-1.0) - Erste Hardware-Fixes
+## [Beta 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-1.0/VESC_Scripts/g30_dashboard_race.lisp) - Erste Hardware-Fixes
 
 **Behoben:**
 - ADC-Schwellen für Bremse/Gas-Erkennung von 0.1V auf 0.3V angehoben. Bei 0.1V
@@ -129,7 +151,7 @@ Keine Verhaltensänderung - reine Struktur/Lesbarkeit.
 **Neu:**
 - Fault-Code-Ausgabe im VESC-Tool-Terminal zum Debuggen.
 
-## [Alpha 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/history/alpha-1.0) - Erste Version
+## [Alpha 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-1.0/VESC_Scripts/g30_dashboard_race.lisp) - Erste Version
 
 **Neu:**
 - Custom G30-Dashboard-Script mit zwei Profilen: Original (Stock
