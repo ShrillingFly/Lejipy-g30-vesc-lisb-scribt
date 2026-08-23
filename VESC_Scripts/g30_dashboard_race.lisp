@@ -54,6 +54,16 @@
 ;     up. Codes with no sane G30 equivalent (encoder/resolver faults - this
 ;     hardware has neither) fall back to "10" (generic comm/control-board
 ;     error).
+;
+; v1.6 changes:
+;   - Removed the whole alarm/anti-theft subsystem: no more gyro/speed
+;     movement detection, no siren tones, no forced full-power auto-brake
+;     while locked. Locking (double-press without throttle/brake held) now
+;     only does the immobilizer part - cuts throttle, nothing else. All the
+;     "alarm" state, start-alarm/stop-alarm, play-tone/stop-tone and
+;     get-gyro code is gone.
+;   - No "walk mode" existed in this script to begin with, so there was
+;     nothing to remove for that.
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -68,13 +78,6 @@
 (def show-batt-in-idle 1)
 (def min-speed 1) ; minimum speed in km/h to enable throttle and brake
 (def button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
-
-; Alarm parameters (foc-play-tone)
-(def alarm-tone 1)
-(def alarm-speed-threshold 0.5) ; speed in km/h to trigger alarm
-(def alarm-gyro-threshold 10) ; change in degree/s to trigger alarm
-(def alarm-voltage 24) ; voltage for alarm sound, higher = louder
-;(def alarm-frequency) ; todo: not supported yet, lower = louder, current: 2=4000, 3=7000, 6=2000
 
 ; Original profile - speed modes (km/h, watts, current scale)
 (def eco-speed (/ 7 3.6))
@@ -122,10 +125,6 @@
 (def speedmode 4)
 (def light 0)
 (def unlock 0) ; unlock = 1 means Race profile is active
-
-; alarm states
-(def alarm 0)
-(def alarm-time (systime))
 
 ; sound feedback
 (def feedback 0)
@@ -227,7 +226,7 @@
             )
         )
 
-        (handle-lock (abs current-speed))
+        (handle-lock)
         (print-fault)
     }
 )
@@ -257,10 +256,7 @@
 
         ; light field
         (if (= off 0)
-            (if (> alarm 4)
-                (bufset-u8 tx-frame 9 1) ; alarm on
-                (bufset-u8 tx-frame 9 light)
-            )
+            (bufset-u8 tx-frame 9 light)
             (bufset-u8 tx-frame 9 0)
         )
 
@@ -283,11 +279,8 @@
             )
         )
 
-        ; error field
-        (if (> alarm 0)
-            (bufset-u8 tx-frame 12 99) ; alarm active
-            (bufset-u8 tx-frame 12 (fault-to-ninebot (get-fault))) ; shown as a real Ninebot G30 error code
-        )
+        ; error field - shown as a real Ninebot G30 error code
+        (bufset-u8 tx-frame 12 (fault-to-ninebot (get-fault)))
 
         ; calc crc
 
@@ -375,9 +368,6 @@
                             (set 'lock (bitwise-xor lock 1)) ; lock on or off
                             (set 'light 0) ; turn off light when locking
                             (set 'feedback 1) ; beep feedback
-                            (if (= lock 0)
-                                (stop-alarm)
-                            )
                         }
                     )
                     {
@@ -456,118 +446,12 @@
     }
 )
 
-(defun start-alarm()
-    (if (= alarm 0)
-        {
-            (set 'alarm 1)
-            (set 'alarm-time (systime))
-            (print "Alarm started")
-        }
+; No alarm/anti-theft system - lock just cuts throttle, no siren, no gyro
+; monitoring, no forced auto-brake.
+(defun handle-lock()
+    (if (= lock 1)
+        (set-current-rel 0) ; No current input when locked
     )
-)
-
-(defun stop-alarm()
-    (if (> alarm 0)
-        {
-            (set 'alarm 0)
-            (set-brake-rel 0)
-            (stop-tone)
-            (print "Alarm stopped")
-        }
-    )
-)
-
-(defun handle-lock(speed)
-    {
-        ; alarm detection
-        (var gyro (get-gyro))
-        (cond
-            ; gyro detects movement while locked
-            ((and (= lock 1) (or (> (abs (ix gyro 0)) alarm-gyro-threshold) (> (abs (ix gyro 1)) alarm-gyro-threshold) (> (abs (ix gyro 2)) alarm-gyro-threshold))) ; locked and moving
-                (start-alarm)
-            )
-            ; wheel is moving while locked
-            ((and (= lock 1) (> speed alarm-speed-threshold))
-                (start-alarm)
-            )
-            ; not locked or not moving (> 3 seconds)
-            ((or (= lock 0) (> (secs-since alarm-time) 3))
-                (stop-alarm)
-            )
-        )
-
-        ; lock power control
-        (if (= lock 1)
-            {
-                (set-current-rel 0) ; No current input when locked
-                (if (and (> alarm 0) (> speed 0.0))
-                    (set-brake-rel 1) ; Full power brake
-                    (set-brake-rel 0) ; No brake
-                )
-            }
-        )
-
-        ; alarm sound handling
-        (cond
-            ((= alarm 2) ; first tone
-                {
-                    (if (= alarm-tone 1)
-                        (play-tone 0 4000 alarm-voltage)
-                    )
-                    (set 'feedback 1)
-                }
-            )
-            ((= alarm 3) ; second tone
-                {
-                    (if (= alarm-tone 1)
-                        (play-tone 2 7000 alarm-voltage)
-                    )
-                    (set 'feedback 1)
-                }
-            )
-            ((= alarm 6) ; third tone
-                {
-                    (if (= alarm-tone 1)
-                        (play-tone 1 2000 alarm-voltage)
-                    )
-                    (set 'feedback 1)
-                }
-
-            )
-            ((= alarm 8) ; repeat alarm sound
-                {
-                    (if (= alarm-tone 1)
-                        (stop-tone)
-                    )
-                    (set 'feedback 1)
-                    (set 'alarm 1) ; reset alarm to 1
-                }
-            )
-        )
-
-        ; count up alarm state
-        (if (> alarm 0)
-            (set 'alarm (+ alarm 1))
-        )
-    }
-)
-
-(defun play-tone(channel freq voltage)
-    {
-        (foc-play-tone channel freq voltage)
-        (loopforeach id (can-list-devs)
-            (rcode-run-noret id `(foc-play-tone ,channel ,freq ,voltage))
-        )
-    }
-)
-
-(defun stop-tone()
-    {
-        (foc-play-stop)
-        (loopforeach id (can-list-devs)
-            (rcode-run-noret id '(foc-play-stop))
-        )
-    }
 )
 
 (defun get-lowest-speed()
@@ -583,35 +467,6 @@
         )
 
         speed
-    }
-)
-
-; finds gyro that does not respond with (0,0,0)
-(defunret get-gyro()
-    {
-        (var gyro (get-imu-gyro))
-        (if (and (= (length gyro) 3)
-                (or (> (abs (ix gyro 0)) 0)
-                (> (abs (ix gyro 1)) 0)
-                (> (abs (ix gyro 2)) 0)))
-            (return gyro)
-        )
-
-        (loopforeach i (can-list-devs)
-            {
-                (var can-gyro (rcode-run i 0.5 '(get-imu-gyro)))
-
-                (if (and (eq (type-of can-gyro) 'type-list)
-                        (= (length can-gyro) 3)
-                        (or (> (abs (ix can-gyro 0)) 0)
-                        (> (abs (ix can-gyro 1)) 0)
-                        (> (abs (ix can-gyro 2)) 0)))
-                    (return can-gyro)
-                )
-            }
-        )
-
-        gyro
     }
 )
 
