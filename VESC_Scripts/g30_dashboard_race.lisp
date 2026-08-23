@@ -4,7 +4,7 @@
 ; Custom fork: adds a "Race" profile alongside the "Original" profile.
 ; Tuned for a 72V pack on a Ubox.
 ;   - Original profile: stock eco/drive/sport limits (unchanged from upstream).
-;   - Race profile: eco = highest speed cap / max power, no field weakening;
+;   - Race profile: eco = highest speed cap / max power, 20A field weakening;
 ;                    drive = capped at ~35 km/h, no field weakening;
 ;                    sport = capped at ~45-50 km/h, no field weakening.
 ; Switch profiles by double-pressing the button while holding brake AND throttle
@@ -95,6 +95,14 @@
 ;     across 5V+GND) to filter the button/UART supply, since braking hard
 ;     with no field weakening pulls a lot of current through the same
 ;     wiring loom.
+;
+; v1.9 changes:
+;   - Race-eco now runs 20A field weakening (race-eco-fw 0 -> 20).
+;     Race-drive and race-sport are untouched (still no field weakening).
+;     Lets the motor spin past its normal back-EMF ceiling in race-eco to
+;     actually reach its wide-open speed cap, at the cost of some extra
+;     heat/efficiency - keep an eye on temp-warning-motor/temp-warning-fet
+;     if you push it hard.
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -130,7 +138,7 @@
 (def race-eco-speed (/ 200 3.6)) ; wide open, no real cap - see v1.5 notes above
 (def race-eco-current 1.0) ; max power (scale of configured motor max current)
 (def race-eco-watts 100000) ; wide open, no real cap - actual power still comes from the throttle
-(def race-eco-fw 0) ; no field weakening
+(def race-eco-fw 20) ; 20A field weakening
 (def race-drive-speed (/ 35 3.6))
 (def race-drive-current 1.0)
 (def race-drive-watts 100000) ; watt ceiling opened up - speed cap above is what actually limits this mode
