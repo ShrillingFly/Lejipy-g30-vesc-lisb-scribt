@@ -4,7 +4,7 @@
 ; Custom fork: adds a "Race" profile alongside the "Original" profile.
 ; Tuned for a 72V pack on a Ubox.
 ;   - Original profile: stock eco/drive/sport limits (unchanged from upstream).
-;   - Race profile: eco = no speed/power limit, no field weakening;
+;   - Race profile: eco = highest speed cap / max power, no field weakening;
 ;                    drive = capped at ~35 km/h, no field weakening;
 ;                    sport = capped at ~45-50 km/h, no field weakening.
 ; Switch profiles by double-pressing the button while holding brake AND throttle
@@ -12,6 +12,27 @@
 ; NOTE: battery voltage/cutoffs for the 72V pack are NOT set here - configure
 ; those in the VESC motor/battery config (VESC Tool), this script only reads
 ; get-batt() which already accounts for whatever cutoffs you set there.
+;
+; v1.4 changes (troubleshooting a real dashboard):
+;   - min-adc-throttle/min-adc-brake raised from 0.1 -> 0.3V. At 0.1V a small
+;     ADC zero-offset/noise on the brake line was enough to make the button
+;     logic think the brake was constantly held, which made every double-press
+;     fall into the lock/race-toggle branch instead of ever cycling
+;     eco/drive/sport. This only affects the button GESTURE detection, not the
+;     actual throttle/brake pass-through (that still uses the raw ADC value).
+;     If mode-cycling is still unreliable, recalibrate ADC in VESC Tool ->
+;     App Settings -> ADC (check the resting voltage is near 0 for both lines).
+;   - race-eco/drive/sport-watts lowered from 1500000 -> 20000 W and
+;     race-eco-speed lowered from 999 -> 80 km/h. Passing a physically
+;     impossible target (near-infinite watts, a speed the motor can't reach
+;     without field weakening) makes the control loop hold max duty trying to
+;     get there, which is a likely cause of the "b3" (DRV / fault code 3)
+;     shown on the dashboard. 20000 W / 80 km/h is still far beyond what a
+;     G30 hub motor can do, so it still behaves as "no real limit" - tune
+;     these down to your actual motor/battery max current in VESC Tool if
+;     you want a real, hardware-matched ceiling instead.
+;   - Added fault-code printing to the VESC Tool terminal (see print-fault
+;     below) so you can see exactly when/what faults trip while testing.
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -19,8 +40,8 @@
 
 ; -> User parameters (change these to your needs)
 (def software-adc 1)
-(def min-adc-throttle 0.1)
-(def min-adc-brake 0.1)
+(def min-adc-throttle 0.3) ; raised from 0.1 - avoids false "throttle held" from ADC drift/noise
+(def min-adc-brake 0.3) ; raised from 0.1 - avoids false "brake held" from ADC drift/noise
 (def temp-warning-motor 100) ; temperature warning for motor in degree celsius
 (def temp-warning-fet 80) ; temperature warning for fet in degree celsius
 (def show-batt-in-idle 1)
@@ -51,17 +72,17 @@
 ; Race profile. To enable, press the button 2 times while holding brake and throttle at the same time.
 ; (press again the same way to switch back to the Original profile above)
 (def race-enabled 1)
-(def race-eco-speed (/ 999 3.6)) ; effectively no speed limit
+(def race-eco-speed (/ 80 3.6)) ; high cap, not a literal "infinite" target - see v1.4 notes above
 (def race-eco-current 1.0) ; max power (scale of configured motor max current)
-(def race-eco-watts 1500000) ; effectively no watt limit
+(def race-eco-watts 20000) ; high cap ("no real limit" for this hardware) - tune to your real max if needed
 (def race-eco-fw 0) ; no field weakening
 (def race-drive-speed (/ 35 3.6))
 (def race-drive-current 1.0)
-(def race-drive-watts 1500000)
+(def race-drive-watts 20000)
 (def race-drive-fw 0) ; no field weakening
 (def race-sport-speed (/ 48 3.6)) ; chill 45-50 km/h, adjust to taste
 (def race-sport-current 1.0)
-(def race-sport-watts 1500000)
+(def race-sport-watts 20000)
 (def race-sport-fw 0) ; no field weakening
 
 ; -> Code starts here (DO NOT CHANGE ANYTHING BELOW THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING)
@@ -87,6 +108,24 @@
 
 ; sound feedback
 (def feedback 0)
+
+; last fault code seen, for print-fault below
+(def last-fault 0)
+
+; Prints to the VESC Tool terminal whenever the fault code changes, so real
+; VESC faults (e.g. "3" = FAULT_CODE_DRV) are visible while testing, instead
+; of only showing up as a code on the dashboard.
+(defun print-fault()
+    {
+        (var current-fault (get-fault))
+        (if (not (= current-fault last-fault))
+            {
+                (print (str-merge "Fault changed: " (str-from-n last-fault) " -> " (str-from-n current-fault)))
+                (set 'last-fault current-fault)
+            }
+        )
+    }
+)
 
 (defun adc-input(buffer) ; Frame 0x65
     {
@@ -133,6 +172,7 @@
         )
 
         (handle-lock (abs current-speed))
+        (print-fault)
     }
 )
 
