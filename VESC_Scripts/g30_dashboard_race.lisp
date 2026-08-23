@@ -78,6 +78,23 @@
 ;     weakening) was counted immediately and could fire a mode/lock toggle
 ;     the moment the wheel came to a stop, even though nobody touched the
 ;     button. Edges seen while moving are now discarded via reset-button.
+;
+; v1.8 changes:
+;   - The v1.7 speed-gate alone wasn't enough: braking even at low/near-zero
+;     speed can still put noise on the button pin (it shares a wire with
+;     UART), and that showed up as the light toggling on its own under
+;     braking (a single phantom press instead of a double one). Replaced
+;     the single-read-plus-recheck debounce with read-button-pin: a 3-sample
+;     majority vote over 60ms (matching the fix the upstream m365fw/
+;     vesc_m365_dash project itself adopted for the same shared-wire noise
+;     problem). A brief glitch now needs 2 of 3 samples to agree before
+;     it's read as a real button state.
+;   - If phantom presses still happen after this, it's a hardware/wiring
+;     issue, not something more software can reliably fix: the upstream
+;     project's guide recommends adding a capacitor across 3.3V+GND (and
+;     across 5V+GND) to filter the button/UART supply, since braking hard
+;     with no field weakening pulls a lot of current through the same
+;     wiring loom.
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -484,18 +501,32 @@
     }
 )
 
+; Reads the button pin as a 3-sample majority vote over 60ms (20ms apart)
+; instead of a single raw read, so a brief noise/EMI glitch on the shared
+; button/UART line (e.g. from a hard e-brake pull) doesn't get read as a
+; real press by itself - it needs 2 of 3 samples to agree. Same polarity as
+; a raw gpio-read: 0 = pressed, 1 = not pressed (pin-rx is pulled up).
+(defun read-button-pin()
+    {
+        (var sample-num 3)
+        (var sample-sum 0)
+        (looprange i 0 sample-num
+            {
+                (sleep 0.02)
+                (setq sample-sum (+ sample-sum (gpio-read 'pin-rx)))
+            }
+        )
+        (if (> sample-sum (/ sample-num 2)) 1 0)
+    }
+)
+
 (defun button-logic()
     {
         ; Assume button is not pressed by default
         (var buttonold 0)
         (loopwhile t
             {
-                (var button (gpio-read 'pin-rx))
-                (sleep 0.03) ; wait 30 ms to debounce
-                (var buttonconfirm (gpio-read 'pin-rx))
-                (if (not (= button buttonconfirm))
-                    (set 'button 0)
-                )
+                (var button (read-button-pin))
 
                 (if (> buttonold button)
                     (if (<= (get-speed) button-safety-speed) ; only count presses while actually stationary
