@@ -1,67 +1,142 @@
-# G30 VESC Dashboard – Original + Race Profile
+# G30 VESC Dashboard – Original + Race Profil
 
-VESC lisp dashboard script for a Ninebot G30, based on the original
-["G30 dashboard support lisp script" by Izuna and AKA13](https://github.com/m365fw/vesc_m365_dash),
-extended with a second, switchable **Race profile** on top of the
-stock **Original profile**.
+Lisp-Script, mit dem ein **Ninebot G30 Display** an einem VESC-Controller läuft –
+erweitert um ein zweites, umschaltbares **Race-Profil** neben dem normalen
+**Original-Profil**.
 
-Tested with VESC 7.00 on a Spintend Ubox Single 85 200, 72V pack.
+Getestet mit VESC 7.00 auf einem Spintend Ubox Single 85 200 mit 72V-Akku.
 
-## What it does
-
-- **Original profile**: stock eco/drive/sport limits, unchanged from upstream.
-- **Race profile**: separate eco/drive/sport limits, tuned independently
-  (see the table at the top of the script). Switch between the two by
-  double-pressing the dashboard button while holding brake **and**
-  throttle at the same time (board must be stationary). Same gesture
-  switches back.
-- Dashboard error codes are mapped from VESC's internal fault codes to
-  the closest matching real Ninebot G30 error code, so what shows up on
-  the display is something you can actually look up.
-- No alarm/anti-theft subsystem - locking just cuts throttle (immobilizer
-  only), no siren, no gyro movement detection, no forced auto-brake.
-- Debounced button reading (3-sample majority vote) to filter out noise
-  on the shared button/UART wire, e.g. from hard braking.
-
-Full details are documented in comments inside
-[`VESC_Scripts/g30_dashboard_race.lisp`](VESC_Scripts/g30_dashboard_race.lisp).
-See [`CHANGELOG.md`](CHANGELOG.md) for the full Alpha → Beta → Release
-version history, with the exact script snapshot for each version kept on
-its own branch.
-
-## Which version to use
-
-- **`main` (Alpha 2.0)** - the stable, proven version. This is what runs
-  well on real hardware. Use this one.
-- **[`beta-3.0`](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp)** -
-  new, not yet road-tested: the dashboard display becomes freely
-  configurable (what's shown standing still vs riding, per profile,
-  including a red blinking readout in the error-code field), plus a
-  retuned Original profile. Try it if you want those features.
+> **Welche Datei nehme ich?**
+> Im Ordner [`VESC_Scripts`](VESC_Scripts) liegt immer die **neueste Alpha** –
+> also die Version, die getestet ist und läuft. Einfach die nehmen.
 
 ## Installation
 
-UART wiring: red = 5V, black = GND, yellow = COM-TX (UART-HDX),
-green = COM-RX (button) + 3.3V through a 1kΩ resistor.
+1. VESC Tool öffnen und per USB, Bluetooth oder WLAN mit dem VESC verbinden.
+2. Script holen: [`VESC_Scripts/g30_dashboard_race.lisp`](VESC_Scripts/g30_dashboard_race.lisp)
+   öffnen → oben rechts auf **Raw** → alles markieren und kopieren (Strg+A, Strg+C).
+3. In VESC Tool auf **VESC Dev Tools → Lisp** gehen, den vorhandenen Inhalt
+   löschen und den kopierten Code einfügen.
+4. Auf **Upload** klicken. Mit **Stream** kann man es vorher testen, ohne es
+   dauerhaft zu speichern.
+5. Die ADC-App einrichten (siehe unten) – ohne das kommt kein Gas am Motor an.
 
-German wiring guide: https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
+## Verkabelung
 
-Load the script into VESC Tool's Lisp tab and upload it to your VESC.
+<span style="color:rgb(184, 49, 47);">Rot</span> auf **5V** \
+<span style="color:rgb(209, 213, 216);">Schwarz</span> auf **GND** \
+<span style="color:rgb(250, 197, 28);">Gelb</span> auf **TX (UART-HDX)** \
+<span style="color:rgb(97, 189, 109);">Grün</span> auf **RX (Button)** \
+**1 kOhm Widerstand** von <span style="color:rgb(251, 160, 38);">3.3V</span> auf
+<span style="color:rgb(97, 189, 109);">RX (Button)</span>
 
-## Tuning
+![Verkabelung VESC zu BLE-Display](guide/imgs/verkabelung.png)
 
-All the values you'd realistically want to change day-to-day - speed
-caps, current scale, watt ceilings, field weakening, ADC thresholds,
-temperature warnings - are grouped in one block near the top of the
-script, under `QUICK-EDIT PARAMETERS`. Everything below
-`Code starts here` is implementation and shouldn't need touching for
-normal tuning.
+Die Farben gelten für das originale Ninebot-Kabel. Aftermarket-Kabel haben oft
+andere Farben – dann lieber nach Pin-Belegung gehen.
 
-**NOTE:** battery voltage/cutoffs are not set by this script - configure
-those separately in your VESC motor/battery config in VESC Tool.
+**Tipp:** Bei Störungen auf der Button-Leitung (Licht geht beim Bremsen von
+selbst an o.ä.) helfen Kondensatoren auf 3.3V+GND und 5V+GND. Die Button-Leitung
+teilt sich physisch die Leitung mit der UART-Kommunikation, und hartes Bremsen
+zieht viel Strom durch denselben Kabelbaum.
 
-## Disclaimer
+## ADC Setup
 
-This is a hobbyist mod for a personal electric scooter. Test any speed/
-power/current changes carefully and within your local laws before riding.
-No warranty, use at your own risk.
+Gas und Bremse laufen über die ADC-App, die muss einmal eingerichtet werden:
+
+- **App Settings → General**: **APP to Use** auf `ADC`, dann **Write**
+- **App Settings → ADC → General**: **Control Type** `Current`,
+  **Use Filter** `True`, **Safe Start** `Regular`, **Update Rate** `1000 Hz`
+- **App Settings → ADC → Mapping**: **ADC Mapping** öffnen, Gas und Bremse
+  einmal komplett durchziehen, dann **Apply and Write**
+
+Im Script steht `software-adc` standardmäßig auf `1`: Gas und Bremse kommen
+dann über UART vom Display. Auf `0` stellen, wenn sie stattdessen direkt an den
+ADC-Pins des VESC hängen.
+
+> **Wichtig:** Akkuspannung und Abschaltgrenzen stellt das Script **nicht** ein –
+> das machst du separat in der Motor-/Akku-Konfiguration im VESC Tool.
+
+## Bedienung am Display
+
+Alle Knopf-Gesten funktionieren nur im **Stillstand** (Sicherheitssperre).
+
+| Geste | Funktion |
+|---|---|
+| 1x drücken (aus) | Roller einschalten |
+| 1x drücken (an) | Licht an/aus |
+| 2x drücken | Fahrmodus wechseln: Eco → Drive → Sport |
+| 2x drücken + **Bremse** halten | Sperre (Wegfahrsperre) an/aus |
+| 2x drücken + **Bremse und Gas** halten | **Original ↔ Race** umschalten (2x Piep) |
+| Lang drücken (6 s) | Roller ausschalten |
+
+Beim Aus- und Einschalten springt er automatisch zurück auf **Original** – Race
+musst du nach jedem Neustart neu aktivieren.
+
+## Einstellungen
+
+Alle Werte, die man im Alltag ändern will, stehen als Tabelle **ganz oben im
+Script** unter `QUICK-EDIT PARAMETERS`:
+
+- Pro Fahrmodus (Eco/Drive/Sport, jeweils für Original und Race):
+  Geschwindigkeit, Stromskalierung, Watt-Limit und Field Weakening.
+- Temperatur-Warnschwellen für Motor und Controller.
+- ADC-Schwellen für die Knopf-Gesten.
+- `speed-limit-start`: wie früh der Geschwindigkeits-Regler anfängt, den Strom
+  zurückzunehmen (gegen Geräusche am Limit).
+
+Alles unterhalb von `Code starts here` ist Programmlogik und muss für normales
+Tuning nicht angefasst werden.
+
+## Features
+
+- [x] Zwei komplette Profile (Original + Race), per Knopfdruck umschaltbar
+- [x] Alle Tuning-Werte als Tabelle oben im Script
+- [x] Fahrmodus-Wechsel Eco/Drive/Sport per Doppelklick
+- [x] Wegfahrsperre (reine Gassperre, ohne Alarmanlage)
+- [x] Ausschalten per langem Knopfdruck
+- [x] Temperatur-Warnsymbol (Schwelle einstellbar)
+- [x] Fehlercodes als echte Ninebot-G30-Codes statt VESC-interner Nummern
+- [x] Entstörtes Knopf-Einlesen (3-fach-Mehrheitsentscheid)
+- [ ] Frei konfigurierbare Anzeige (Stand/Fahrt, pro Profil) – in
+      [Beta 3.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp),
+      noch nicht auf der Straße getestet
+
+## Voraussetzungen
+
+VESC-Firmware **7.00**, erhältlich auf https://vesc-project.com/
+
+## Getestete Hardware
+
+- Spintend Ubox Single 85 200, 72V-Akku
+- Originales Ninebot G30 Display
+
+## Versionen
+
+Die komplette Historie von Alpha 1.0 bis heute steht im
+[CHANGELOG.md](CHANGELOG.md) – jede Version verlinkt, mit dem was neu ist und
+was behoben wurde. Jede Version liegt außerdem als eigener Branch im Repo.
+
+## Credits
+
+Basiert auf dem **G30 dashboard support lisp script** von
+[AKA13](https://github.com/aka13-404) und [1zuna](https://github.com/1zun4) –
+Originalprojekt: https://github.com/1zun4/vesc_scooter_support
+
+Das Verkabelungsbild stammt aus deren Guide. Die Idee, das Fehlercode-Feld als
+rot blinkende Anzeige zu nutzen (in Beta 3.0), stammt aus
+[Sharkboys G30-Script](https://github.com/Sharkboy-j/vesc_g30_dash).
+
+Weitere Anleitungen:
+[DE-Guide von 1zuna](https://github.com/1zun4/vesc_scooter_support/blob/main/guide/DE.md) |
+[Rollerplausch-Guide](https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/)
+
+## Lizenz
+
+[GPL-3.0](LICENSE) – wie das Originalprojekt, von dem dieses Script abstammt.
+
+## Haftungsausschluss
+
+Privates Hobbyprojekt für einen eigenen E-Scooter. Änderungen an
+Geschwindigkeit, Leistung und Strom vorsichtig testen und die örtlichen Gesetze
+beachten. Keine Garantie, Benutzung auf eigene Gefahr.
