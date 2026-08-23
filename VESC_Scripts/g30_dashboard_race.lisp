@@ -103,6 +103,20 @@
 ;     actually reach its wide-open speed cap, at the cost of some extra
 ;     heat/efficiency - keep an eye on temp-warning-motor/temp-warning-fet
 ;     if you push it hard.
+;
+; v2.0 changes:
+;   - Added speed-limit-start (VESC's l-erpm-start), now set on every mode
+;     apply. Fixes "weird noises" when the motor hits max-speed, both in
+;     Original mode and in race-drive/race-sport (no field weakening in
+;     all three, so there's little headroom before the physical ceiling).
+;     VESC's speed governor doesn't cut power abruptly right at the cap -
+;     it starts tapering current at l-erpm-start (a fraction of max-speed,
+;     default 0.8 i.e. tapering only starts at 80% of the limit). That
+;     late, steep taper is what causes the chatter/whine at the limit.
+;     Lowered to 0.5 here so the taper starts earlier and is more gradual.
+;     Raise it back towards 0.8 if you'd rather have full power right up
+;     to the cap and don't mind the noise; lower it further (e.g. 0.3) for
+;     an even smoother/quieter approach.
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -117,6 +131,7 @@
 (def show-mot-temp-in-idle 1) ; show motor temp (instead of speed) on the dash while stopped, in Race mode
 (def min-speed 1) ; minimum speed in km/h to enable throttle and brake
 (def button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
+(def speed-limit-start 0.5) ; fraction of max-speed where the speed governor starts tapering current (VESC default 0.8) - lower = earlier/more gradual taper, less noise when you hit the cap
 
 ; Original profile - speed modes (km/h, watts, current scale)
 (def eco-speed (/ 7 3.6))
@@ -470,6 +485,7 @@
         (set-param 'l-watt-max watts)
         (set-param 'l-current-max-scale current)
         (set-param 'foc-fw-current-max fw)
+        (set-param 'l-erpm-start speed-limit-start)
     }
 )
 
