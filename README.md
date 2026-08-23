@@ -27,7 +27,17 @@ Full details are documented in comments inside
 [`VESC_Scripts/g30_dashboard_race.lisp`](VESC_Scripts/g30_dashboard_race.lisp).
 See [`CHANGELOG.md`](CHANGELOG.md) for the full Alpha → Beta → Release
 version history, with the exact script snapshot for each version kept on
-its own `history/*` branch.
+its own branch.
+
+## Which version to use
+
+- **`main` (Alpha 2.0)** - the stable, proven version. This is what runs
+  well on real hardware. Use this one.
+- **[`beta-3.0`](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/beta-3.0)** -
+  new, not yet road-tested: the dashboard display becomes freely
+  configurable (what's shown standing still vs riding, per profile,
+  including a red blinking readout in the error-code field), plus a
+  retuned Original profile. Try it if you want those features.
 
 ## Installation
 
