@@ -52,3 +52,4 @@ those separately in your VESC motor/battery config in VESC Tool.
 This is a hobbyist mod for a personal electric scooter. Test any speed/
 power/current changes carefully and within your local laws before riding.
 No warranty, use at your own risk.
+test change
