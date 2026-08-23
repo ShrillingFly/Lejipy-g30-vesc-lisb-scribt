@@ -23,8 +23,11 @@ Tested with VESC 7.00 on a Spintend Ubox Single 85 200, 72V pack.
 - Debounced button reading (3-sample majority vote) to filter out noise
   on the shared button/UART wire, e.g. from hard braking.
 
-Full details and the version history are documented in comments inside
+Full details are documented in comments inside
 [`VESC_Scripts/g30_dashboard_race.lisp`](VESC_Scripts/g30_dashboard_race.lisp).
+See [`CHANGELOG.md`](CHANGELOG.md) for the full Alpha → Beta → Release
+version history, with the exact script snapshot for each version kept on
+its own `history/*` branch.
 
 ## Installation
 
