@@ -33,6 +33,27 @@
 ;     you want a real, hardware-matched ceiling instead.
 ;   - Added fault-code printing to the VESC Tool terminal (see print-fault
 ;     below) so you can see exactly when/what faults trip while testing.
+;
+; v1.5 changes:
+;   - Race watt ceilings opened back up (20000 -> 100000 W), and
+;     race-eco-speed raised again (80 -> 200 km/h). Real power delivery is
+;     throttle-proportional (the ADC pass-through), not something max-speed/
+;     l-watt-max force on their own - those are just ceilings, so raising
+;     them doesn't make the controller push current on its own. Only
+;     race-eco-speed/watts are "wide open"; race-drive (35 km/h) and
+;     race-sport (~48 km/h) keep their explicit speed targets, just with
+;     the same opened-up watt ceiling.
+;   - The dashboard's error field (and print-fault) now show a best-effort
+;     mapping to real Ninebot G30 error codes (fault-to-ninebot, see below)
+;     instead of VESC's raw internal fault number. VESC and Ninebot use two
+;     completely unrelated fault-code systems (there is no official VESC
+;     <-> Ninebot cross-reference) - this maps each VESC fault to the
+;     closest matching real Ninebot code (e.g. VESC FAULT_CODE_BRK -> "15"
+;     brake sensor abnormal, VESC FAULT_CODE_DRV -> "11" motor phase current
+;     abnormal) so what you see on the dash is a code you can actually look
+;     up. Codes with no sane G30 equivalent (encoder/resolver faults - this
+;     hardware has neither) fall back to "10" (generic comm/control-board
+;     error).
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -72,17 +93,17 @@
 ; Race profile. To enable, press the button 2 times while holding brake and throttle at the same time.
 ; (press again the same way to switch back to the Original profile above)
 (def race-enabled 1)
-(def race-eco-speed (/ 80 3.6)) ; high cap, not a literal "infinite" target - see v1.4 notes above
+(def race-eco-speed (/ 200 3.6)) ; wide open, no real cap - see v1.5 notes above
 (def race-eco-current 1.0) ; max power (scale of configured motor max current)
-(def race-eco-watts 20000) ; high cap ("no real limit" for this hardware) - tune to your real max if needed
+(def race-eco-watts 100000) ; wide open, no real cap - actual power still comes from the throttle
 (def race-eco-fw 0) ; no field weakening
 (def race-drive-speed (/ 35 3.6))
 (def race-drive-current 1.0)
-(def race-drive-watts 20000)
+(def race-drive-watts 100000) ; watt ceiling opened up - speed cap above is what actually limits this mode
 (def race-drive-fw 0) ; no field weakening
 (def race-sport-speed (/ 48 3.6)) ; chill 45-50 km/h, adjust to taste
 (def race-sport-current 1.0)
-(def race-sport-watts 20000)
+(def race-sport-watts 100000) ; watt ceiling opened up - speed cap above is what actually limits this mode
 (def race-sport-fw 0) ; no field weakening
 
 ; -> Code starts here (DO NOT CHANGE ANYTHING BELOW THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING)
@@ -112,15 +133,50 @@
 ; last fault code seen, for print-fault below
 (def last-fault 0)
 
+; Best-effort map from a VESC fault code (get-fault, see mc_fault_code in
+; the VESC firmware) to the closest matching real Ninebot G30 dashboard
+; error code, so the dash shows a code you can actually look up instead of
+; VESC's internal fault number. There is no official VESC <-> Ninebot
+; cross-reference - these are two unrelated fault systems - so this is an
+; approximation, not an authoritative table. Encoder/resolver faults
+; (codes 11-13, 20-30) don't apply to this hardware (the G30 hub motor has
+; neither) and fall back to the generic "10" comm/control-board code.
+(defun fault-to-ninebot(code)
+    (cond
+        ((= code 0) 0)   ; FAULT_CODE_NONE -> no error
+        ((= code 1) 19)  ; OVER_VOLTAGE -> abnormal battery voltage
+        ((= code 2) 19)  ; UNDER_VOLTAGE -> abnormal battery voltage
+        ((= code 3) 11)  ; DRV -> motor phase current abnormal
+        ((= code 4) 11)  ; ABS_OVER_CURRENT -> motor phase current abnormal
+        ((= code 5) 40)  ; OVER_TEMP_FET -> control board temperature abnormal
+        ((= code 6) 41)  ; OVER_TEMP_MOTOR -> motor temperature abnormal
+        ((= code 7) 19)  ; GATE_DRIVER_OVER_VOLTAGE -> battery voltage abnormal
+        ((= code 8) 19)  ; GATE_DRIVER_UNDER_VOLTAGE -> battery voltage abnormal
+        ((= code 9) 19)  ; MCU_UNDER_VOLTAGE -> battery voltage abnormal
+        ((= code 14) 50) ; FLASH_CORRUPTION -> firmware/setup error
+        ((= code 15) 11) ; HIGH_OFFSET_CURRENT_SENSOR_1
+        ((= code 16) 12) ; HIGH_OFFSET_CURRENT_SENSOR_2
+        ((= code 17) 13) ; HIGH_OFFSET_CURRENT_SENSOR_3
+        ((= code 18) 11) ; UNBALANCED_CURRENTS
+        ((= code 19) 15) ; BRK -> brake sensor abnormal
+        ((= code 23) 50) ; FLASH_CORRUPTION_APP_CFG -> firmware/setup error
+        ((= code 24) 50) ; FLASH_CORRUPTION_MC_CFG -> firmware/setup error
+        ((= code 27) 11) ; PHASE_FILTER
+        ((= code 29) 19) ; LV_OUTPUT_FAULT -> battery voltage abnormal
+        (t 10) ; anything else (incl. encoder/resolver faults) -> generic comm/control-board error
+    )
+)
+
 ; Prints to the VESC Tool terminal whenever the fault code changes, so real
-; VESC faults (e.g. "3" = FAULT_CODE_DRV) are visible while testing, instead
-; of only showing up as a code on the dashboard.
+; VESC faults are visible while testing, alongside the Ninebot-style code
+; shown on the dashboard.
 (defun print-fault()
     {
         (var current-fault (get-fault))
         (if (not (= current-fault last-fault))
             {
-                (print (str-merge "Fault changed: " (str-from-n last-fault) " -> " (str-from-n current-fault)))
+                (print (str-merge "VESC fault " (str-from-n last-fault) " -> " (str-from-n current-fault)
+                    " (dash shows Ninebot code " (str-from-n (fault-to-ninebot current-fault)) ")"))
                 (set 'last-fault current-fault)
             }
         )
@@ -230,7 +286,7 @@
         ; error field
         (if (> alarm 0)
             (bufset-u8 tx-frame 12 99) ; alarm active
-            (bufset-u8 tx-frame 12 (get-fault))
+            (bufset-u8 tx-frame 12 (fault-to-ninebot (get-fault))) ; shown as a real Ninebot G30 error code
         )
 
         ; calc crc
