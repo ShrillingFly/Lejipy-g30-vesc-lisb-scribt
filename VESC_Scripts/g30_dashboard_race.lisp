@@ -1,5 +1,7 @@
 ; G30 dashboard support lisp script v1.3 by Izuna and AKA13
 ; Tested with VESC 7.00 on Spintend Ubox Single 85 200
+; Based on https://github.com/1zun4/vesc_scooter_support - licensed GPL-3.0,
+; so this fork is GPL-3.0 too (see LICENSE in the repository root).
 ;
 ; Custom fork: adds a "Race" profile alongside the "Original" profile.
 ; Tuned for a 72V pack on a Ubox. Switch profiles by double-pressing the
