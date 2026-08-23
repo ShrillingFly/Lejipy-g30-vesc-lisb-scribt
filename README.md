@@ -33,7 +33,7 @@ its own branch.
 
 - **`main` (Alpha 2.0)** - the stable, proven version. This is what runs
   well on real hardware. Use this one.
-- **[`beta-3.0`](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/beta-3.0)** -
+- **[`beta-3.0`](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp)** -
   new, not yet road-tested: the dashboard display becomes freely
   configurable (what's shown standing still vs riding, per profile,
   including a red blinking readout in the error-code field), plus a
