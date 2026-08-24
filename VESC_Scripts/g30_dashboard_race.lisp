@@ -11,7 +11,7 @@
 ; those in the VESC motor/battery config (VESC Tool), this script only reads
 ; get-batt() which already accounts for whatever cutoffs you set there.
 ;
-; This is v3.1. Full version history in CHANGELOG.md in the repository.
+; This is v3.2. Full version history in CHANGELOG.md in the repository.
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -59,7 +59,16 @@
 (def blink-normal-idle   6)   (def blink-normal-ride   6)  ; Original: nothing blinking, ever
 (def blink-race-idle     6)   (def blink-race-ride     2)  ; Race: motor temp blinking red while riding
 
-; --- 3) Tuning / hardware behavior ------------------------------------
+; --- 3) Alarm ---------------------------------------------------------
+; Anti-theft alarm for when the scooter is switched OFF (long button press).
+; If it gets rolled or pushed while off, the display flashes and beeps.
+; The scooter stays switched off the whole time - the alarm only changes
+; what is sent to the display, it never enables the motor.
+(def alarm-enabled 1)  ; 1 = alarm on, 0 = off
+(def alarm-speed 2)    ; km/h - movement above this while off sets it off
+(def alarm-seconds 10) ; s - how long it flashes and beeps per trigger
+
+; --- 4) Tuning / hardware behavior ------------------------------------
 (def software-adc 1)
 (def min-adc-throttle 0.3) ; V - throttle-held threshold for button gestures (raised from 0.1 to avoid ADC drift/noise false-triggering)
 (def min-adc-brake 0.3) ; V - brake-held threshold for button gestures (raised from 0.1 to avoid ADC drift/noise false-triggering)
@@ -88,6 +97,11 @@
 
 ; sound feedback
 (def feedback 0)
+
+; alarm state
+(def alarm-active 0)         ; 1 while the alarm is going off
+(def alarm-time (systime))   ; when the current burst started
+(def alarm-tick 0)           ; frame counter, drives the flashing
 
 ; last fault code seen, for print-fault below
 (def last-fault 0)
@@ -187,6 +201,7 @@
         )
 
         (handle-lock)
+        (handle-alarm (abs current-speed))
         (print-fault)
     }
 )
@@ -229,67 +244,103 @@
     )
 )
 
+; Fills the whole dashboard frame while the alarm is going off. While the
+; scooter is off the dash is told "mode 16 = off" and shows nothing, so to
+; make it flash the alarm alternates between a lit-up display (mode + light
+; + battery) and the blank off display. The buzzer field is set on every
+; frame, so it beeps continuously. Toggling every 3rd frame keeps the flash
+; slow enough to read instead of a fast flicker.
+(defun dash-alarm-frame(battery)
+    {
+        (set 'alarm-tick (+ alarm-tick 1))
+        (if (< (mod alarm-tick 6) 3)
+            {
+                (bufset-u8 tx-frame 7 speedmode) ; display lit up
+                (bufset-u8 tx-frame 8 battery)
+                (bufset-u8 tx-frame 9 1)         ; light on
+                (bufset-u8 tx-frame 11 0)
+                (bufset-u8 tx-frame 12 0)
+            }
+            {
+                (bufset-u8 tx-frame 7 16)        ; display blank (off)
+                (bufset-u8 tx-frame 8 0)
+                (bufset-u8 tx-frame 9 0)         ; light off
+                (bufset-u8 tx-frame 11 0)
+                (bufset-u8 tx-frame 12 0)
+            }
+        )
+        (bufset-u8 tx-frame 10 1) ; beep, the whole time
+    }
+)
+
 (defun update-dash(buffer) ; Frame 0x64
     {
         (var current-speed (abs (* (get-lowest-speed) 3.6)))
         (var battery (*(get-batt) 100))
         (var moving (> current-speed 1))
 
-        ; mode field (1=drive, 2=eco, 4=sport, 8=charge, 16=off, 32=lock)
-        (if (= off 1)
-            (bufset-u8 tx-frame 7 16)
-            (if (= lock 1)
-                (bufset-u8 tx-frame 7 32) ; lock display
-                (if (or (> (get-temp-fet) temp-warning-fet) (> (get-temp-mot) temp-warning-motor)) ; temp icon will show up above warning degree
-                    (bufset-u8 tx-frame 7 (+ 128 speedmode))
-                    (bufset-u8 tx-frame 7 speedmode)
+        (if (= alarm-active 1)
+            (dash-alarm-frame battery) ; alarm takes over the whole display
+            {
+
+            ; mode field (1=drive, 2=eco, 4=sport, 8=charge, 16=off, 32=lock)
+            (if (= off 1)
+                (bufset-u8 tx-frame 7 16)
+                (if (= lock 1)
+                    (bufset-u8 tx-frame 7 32) ; lock display
+                    (if (or (> (get-temp-fet) temp-warning-fet) (> (get-temp-mot) temp-warning-motor)) ; temp icon will show up above warning degree
+                        (bufset-u8 tx-frame 7 (+ 128 speedmode))
+                        (bufset-u8 tx-frame 7 speedmode)
+                    )
                 )
             )
-        )
 
-        ; batt field
-        (if (= lock 1)
-            (bufset-u8 tx-frame 8 0) ; lock display
-            (bufset-u8 tx-frame 8 battery)
-        )
-
-        ; light field
-        (if (= off 0)
-            (bufset-u8 tx-frame 9 light)
-            (bufset-u8 tx-frame 9 0)
-        )
-
-        ; beep field
-        (if (> feedback 0)
-            {
-                (bufset-u8 tx-frame 10 1)
-                (set 'feedback (- feedback 1))
-            }
-            (bufset-u8 tx-frame 10 0)
-        )
-
-        ; main field - content configured at the top of the file
-        (if (= lock 1)
-            (bufset-u8 tx-frame 11 0) ; lock display
-            (bufset-u8 tx-frame 11
-                (dash-value
-                    (pick-display show-normal-idle show-normal-ride show-race-idle show-race-ride moving)
-                    current-speed battery))
-        )
-
-        ; blink field (the dash's error-code field, shows red and blinking).
-        ; A real VESC fault always wins here and is shown as a Ninebot G30
-        ; error code; only when there is no fault is the field free for the
-        ; readout configured at the top of the file.
-        (if (= (get-fault) 0)
+            ; batt field
             (if (= lock 1)
-                (bufset-u8 tx-frame 12 0) ; lock display
-                (bufset-u8 tx-frame 12
+                (bufset-u8 tx-frame 8 0) ; lock display
+                (bufset-u8 tx-frame 8 battery)
+            )
+
+            ; light field
+            (if (= off 0)
+                (bufset-u8 tx-frame 9 light)
+                (bufset-u8 tx-frame 9 0)
+            )
+
+            ; beep field
+            (if (> feedback 0)
+                {
+                    (bufset-u8 tx-frame 10 1)
+                    (set 'feedback (- feedback 1))
+                }
+                (bufset-u8 tx-frame 10 0)
+            )
+
+            ; main field - content configured at the top of the file
+            (if (= lock 1)
+                (bufset-u8 tx-frame 11 0) ; lock display
+                (bufset-u8 tx-frame 11
                     (dash-value
-                        (pick-display blink-normal-idle blink-normal-ride blink-race-idle blink-race-ride moving)
+                        (pick-display show-normal-idle show-normal-ride show-race-idle show-race-ride moving)
                         current-speed battery))
             )
-            (bufset-u8 tx-frame 12 (fault-to-ninebot (get-fault)))
+
+            ; blink field (the dash's error-code field, shows red and blinking).
+            ; A real VESC fault always wins here and is shown as a Ninebot G30
+            ; error code; only when there is no fault is the field free for the
+            ; readout configured at the top of the file.
+            (if (= (get-fault) 0)
+                (if (= lock 1)
+                    (bufset-u8 tx-frame 12 0) ; lock display
+                    (bufset-u8 tx-frame 12
+                        (dash-value
+                            (pick-display blink-normal-idle blink-normal-ride blink-race-idle blink-race-ride moving)
+                            current-speed battery))
+                )
+                (bufset-u8 tx-frame 12 (fault-to-ninebot (get-fault)))
+            )
+
+            } ; end of the normal (non-alarm) display
         )
 
         ; calc crc
@@ -457,11 +508,34 @@
     }
 )
 
-; No alarm/anti-theft system - lock just cuts throttle, no siren, no gyro
-; monitoring, no forced auto-brake.
+; Lock is a plain immobilizer - it just cuts throttle, no forced auto-brake.
 (defun handle-lock()
     (if (= lock 1)
         (set-current-rel 0) ; No current input when locked
+    )
+)
+
+; Anti-theft alarm, only while the scooter is switched OFF. Rolling or
+; pushing it above alarm-speed starts a burst of alarm-seconds. If it is
+; still being moved when the burst ends, the next one starts right away, so
+; it keeps going as long as the scooter moves and falls silent a few seconds
+; after it stops. This only sets a flag - the flashing and beeping itself is
+; done in dash-alarm-frame, and the motor stays disabled throughout.
+(defun handle-alarm(speed)
+    (if (and (= alarm-enabled 1) (= off 1))
+        {
+            (if (and (= alarm-active 0) (> speed alarm-speed))
+                {
+                    (set 'alarm-active 1)
+                    (set 'alarm-time (systime))
+                    (set 'alarm-tick 0)
+                }
+            )
+            (if (and (= alarm-active 1) (> (secs-since alarm-time) alarm-seconds))
+                (set 'alarm-active 0)
+            )
+        }
+        (set 'alarm-active 0) ; switched on, or alarm disabled -> never active
     )
 )
 
