@@ -1,18 +1,28 @@
 # Changelog
 
-Alle Zwischenversionen, die während der Entwicklung entstanden sind, liegen
-als eigene Branches im Repo (jeweils mit dem exakten Skript-Stand zu dem
-Zeitpunkt) - siehe die Links unten.
+Jede Version liegt als eigener Branch im Repo, mit dem exakten Skript-Stand von
+damals. **Auf `main` liegt immer die neueste Alpha** – also die getestete,
+empfohlene Version.
 
-- **Stabil / empfohlen:** `Alpha 2.0` - das ist der Stand auf `main`, der
-  auf echter Hardware gut läuft.
-- **Zum Testen:** `Beta 3.0` - neue Features, noch nicht auf der Straße
-  erprobt. Liegt auf einem eigenen Branch.
+| Version | Status | Kurz |
+|---|---|---|
+| [**Beta 3.1**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp) | zum Testen | wie 3.0, nur aufgeräumt: Skript 155 Zeilen kürzer |
+| [Beta 3.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.1 | frei konfigurierbare Anzeige, neue Normal-Werte |
+| [**Alpha 2.0**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-2.0/VESC_Scripts/g30_dashboard_race.lisp) | **stabil, auf `main`** | bewährter Stand, läuft auf echter Hardware |
+| [Release 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/release-1.0/VESC_Scripts/g30_dashboard_race.lisp) | Vorgänger | Tuning-Werte als Tabelle oben im Skript |
+| [Beta 2.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-2.1/VESC_Scripts/g30_dashboard_race.lisp) | alt | Geräusch-Fix am Speed-Limit |
+| [Beta 2.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-2.0/VESC_Scripts/g30_dashboard_race.lisp) | alt | 20A Field Weakening in Race-Eco |
+| [Beta 1.4](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-1.4/VESC_Scripts/g30_dashboard_race.lisp) | alt | robustes Button-Debounce |
+| [Beta 1.3](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-1.3/VESC_Scripts/g30_dashboard_race.lisp) | alt | Motortemp-Anzeige, Button-Fix |
+| [Beta 1.2](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-1.2/VESC_Scripts/g30_dashboard_race.lisp) | alt | Alarmanlage entfernt |
+| [Beta 1.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-1.1/VESC_Scripts/g30_dashboard_race.lisp) | alt | Race geöffnet, Ninebot-Fehlercodes |
+| [Beta 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-1.0/VESC_Scripts/g30_dashboard_race.lisp) | alt | erste Hardware-Fixes |
+| [Alpha 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-1.0/VESC_Scripts/g30_dashboard_race.lisp) | alt | erste Version |
 
 ## So holst du dir eine bestimmte Version
 
-Jede Versions-Überschrift unten ist ein Link, der direkt die passende
-`g30_dashboard_race.lisp` öffnet. Von dort:
+Jeder Versionsname – in der Tabelle oben wie in den Abschnitten unten – ist
+ein Link, der direkt die passende `g30_dashboard_race.lisp` öffnet. Von dort:
 
 1. Auf den Versionsnamen klicken - die Skript-Datei geht auf.
 2. Oben rechts über dem Code auf **Raw** (bzw. das Download-Symbol) klicken.
@@ -28,8 +38,22 @@ Alternativ das ganze Repo auf einmal holen:
 git clone https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt
 ```
 
-Danach mit `git checkout history/beta-1.2` (oder jedem anderen Branchnamen
-aus der Liste unten) zwischen den Versionen wechseln.
+Danach mit `git checkout beta-3.1` bzw. `git checkout history/beta-1.2`
+zwischen den Versionen wechseln (`git branch -a` zeigt alle).
+
+## [Beta 3.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp) - aufgeräumt (ungetestet)
+
+Gleiche Funktionen wie Beta 3.0, nur übersichtlicher gemacht. **Am Verhalten
+ändert sich nichts** – geprüft: der Code ist Zeile für Zeile identisch mit
+Beta 3.0, geändert wurden ausschließlich Kommentare.
+
+**Aufgeräumt:**
+- Der lange Versions-Changelog steht nicht mehr im Skript selbst (er steht ja
+  hier) – das Skript ist dadurch **741 → 586 Zeilen** kurz.
+- Die Erklärung zur Anzeige-Konfiguration von 20 auf 11 Zeilen eingedampft.
+- Die Einstellungs-Abschnitte sind jetzt nummeriert: **1) Fahrmodi**,
+  **2) Anzeige**, **3) Hardware/Tuning**. Alle Einstellungen passen damit auf
+  etwa eine Bildschirmseite.
 
 ## [Beta 3.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp) - frei konfigurierbare Anzeige (ungetestet)
 
