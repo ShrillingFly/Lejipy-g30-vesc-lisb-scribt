@@ -99,7 +99,7 @@ Tuning nicht angefasst werden.
 - [x] Fehlercodes als echte Ninebot-G30-Codes statt VESC-interner Nummern
 - [x] Entstörtes Knopf-Einlesen (3-fach-Mehrheitsentscheid)
 - [ ] Frei konfigurierbare Anzeige (Stand/Fahrt, pro Profil) – in
-      [Beta 3.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp),
+      [Beta 3.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp),
       noch nicht auf der Straße getestet
 
 ## Voraussetzungen
@@ -124,7 +124,7 @@ Basiert auf dem **G30 dashboard support lisp script** von
 Originalprojekt: https://github.com/1zun4/vesc_scooter_support
 
 Das Verkabelungsbild stammt aus deren Guide. Die Idee, das Fehlercode-Feld als
-rot blinkende Anzeige zu nutzen (in Beta 3.0), stammt aus
+rot blinkende Anzeige zu nutzen (in Beta 3.1), stammt aus
 [Sharkboys G30-Script](https://github.com/Sharkboy-j/vesc_g30_dash).
 
 Weitere Anleitungen:
