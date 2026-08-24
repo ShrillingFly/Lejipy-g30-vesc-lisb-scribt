@@ -6,7 +6,8 @@ empfohlene Version.
 
 | Version | Status | Kurz |
 |---|---|---|
-| [**Beta 3.1**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp) | zum Testen | wie 3.0, nur aufgeräumt: Skript 155 Zeilen kürzer |
+| [**Beta 3.2**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.2/VESC_Scripts/g30_dashboard_race.lisp) | zum Testen | Alarmanlage: piept + blinkt, wenn der Roller ausgeschaltet bewegt wird |
+| [Beta 3.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.2 | wie 3.0, nur aufgeräumt: Skript 155 Zeilen kürzer |
 | [Beta 3.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.1 | frei konfigurierbare Anzeige, neue Normal-Werte |
 | [**Alpha 2.0**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-2.0/VESC_Scripts/g30_dashboard_race.lisp) | **stabil, auf `main`** | bewährter Stand, läuft auf echter Hardware |
 | [Release 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/release-1.0/VESC_Scripts/g30_dashboard_race.lisp) | Vorgänger | Tuning-Werte als Tabelle oben im Skript |
@@ -38,8 +39,37 @@ Alternativ das ganze Repo auf einmal holen:
 git clone https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt
 ```
 
-Danach mit `git checkout beta-3.1` bzw. `git checkout history/beta-1.2`
+Danach mit `git checkout beta-3.2` bzw. `git checkout history/beta-1.2`
 zwischen den Versionen wechseln (`git branch -a` zeigt alle).
+
+## [Beta 3.2](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.2/VESC_Scripts/g30_dashboard_race.lisp) - Alarmanlage (ungetestet)
+
+**Neu: Alarmanlage.** Wenn der Roller **ausgeschaltet** ist (langer Knopfdruck,
+Display aus, nichts geht mehr) und trotzdem bewegt wird, fängt das Display an
+zu **blinken und zu piepen**.
+
+An- und ausschalten mit einer Zeile ganz oben im Skript:
+
+```lisp
+(def alarm-enabled 1)  ; 1 = an, 0 = aus
+(def alarm-speed 2)    ; km/h - ab dieser Geschwindigkeit löst er aus
+(def alarm-seconds 10) ; s - so lange piept und blinkt es pro Auslösung
+```
+
+**Wie es sich verhält:**
+- Löst nur im **ausgeschalteten** Zustand aus – nicht beim normalen Fahren und
+  nicht in der Wegfahrsperre.
+- Ab 2 km/h (einstellbar). Blinkt und piept ~10 s.
+- Wird der Roller weiter geschoben, startet direkt die nächste Runde – der
+  Alarm läuft also, solange bewegt wird, und verstummt ein paar Sekunden nach
+  dem Stillstand.
+- **Der Roller bleibt die ganze Zeit aus.** Der Alarm ändert nur, was ans
+  Display geschickt wird, und schaltet den Motor nie frei.
+
+**Technisch:** Im Aus-Zustand bekommt das Display „Modus 16 = aus" und zeigt
+nichts. Damit es überhaupt blinken kann, wechselt der Alarm im Takt zwischen
+„Display an + Licht an + Akku" und „Display aus" und setzt das Piep-Feld
+dauerhaft.
 
 ## [Beta 3.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp) - aufgeräumt (ungetestet)
 
