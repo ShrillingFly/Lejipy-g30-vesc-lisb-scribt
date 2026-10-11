@@ -1,14 +1,14 @@
-# ⚠ Dieser Branch: **Beta 3.2** – NICHT die Alpha
+# ⚠ Dieser Branch: **Beta 3.3** – NICHT die Alpha
 
-Die Datei `g30_dashboard_race.lisp` in **diesem Branch** ist die Beta 3.2:
+Die Datei `g30_dashboard_race.lisp` in **diesem Branch** ist die Beta 3.3:
 neue Features, **noch nicht auf der Straße getestet**.
-(Beta 3.2 = die aufgeräumte 3.1 plus Alarmanlage.)
+(Beta 3.3 = Beta 3.2 mit neuen Race-Werten: Drive 60 km/h / 5 kW, Sport 80 km/h / 10 kW, Eco volle Leistung.)
 
 **Du willst die stabile Version?** Dann hier entlang:
 [VESC_Scripts auf `main`](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/main/VESC_Scripts)
 – dort liegt immer die neueste Alpha.
 
-## Was in Beta 3.2 neu ist
+## Was in Beta 3.3 neu ist
 
 - Die Dashboard-Anzeige ist frei konfigurierbar (oben im Script): getrennt
   einstellbar, was **im Stand** und **während der Fahrt** angezeigt wird,

@@ -11,7 +11,7 @@
 ; those in the VESC motor/battery config (VESC Tool), this script only reads
 ; get-batt() which already accounts for whatever cutoffs you set there.
 ;
-; This is v3.2. Full version history in CHANGELOG.md in the repository.
+; This is v3.3. Full version history in CHANGELOG.md in the repository.
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -35,8 +35,8 @@
 
 ; Race profile (2x button press while holding brake+throttle to toggle)
 (def race-eco-speed    (/ 200 3.6))  (def race-eco-current    1.0)  (def race-eco-watts    100000)  (def race-eco-fw    20)
-(def race-drive-speed  (/ 35 3.6))   (def race-drive-current  1.0)  (def race-drive-watts  100000)  (def race-drive-fw  0)
-(def race-sport-speed  (/ 48 3.6))   (def race-sport-current  1.0)  (def race-sport-watts  100000)  (def race-sport-fw  0)
+(def race-drive-speed  (/ 60 3.6))   (def race-drive-current  1.0)  (def race-drive-watts  5000)    (def race-drive-fw  0)
+(def race-sport-speed  (/ 80 3.6))   (def race-sport-current  1.0)  (def race-sport-watts  10000)   (def race-sport-fw  0)
 
 (def race-enabled 1) ; 0 disables the Race-profile toggle gesture entirely (brake+throttle+2x press just does lock/unlock instead)
 
