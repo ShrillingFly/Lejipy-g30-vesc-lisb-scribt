@@ -70,6 +70,9 @@ Piepen auf **Drive** – im gerade aktiven Profil, also Original-Drive oder
 Race-Drive. Eco und Sport lassen sich dann nicht mehr anwählen, bis der Motor
 unter **100 °C** abgekühlt ist.
 
+**Außerdem:** Die Alarmanlage ist ab Beta 3.5 standardmäßig **aus**
+(`alarm-enabled 0`). Zum Einschalten oben im Script auf `1` setzen.
+
 ```lisp
 (def overheat-temp 110)    ; ab hier nur noch Drive
 (def overheat-release 100) ; ab hier Eco/Sport wieder wählbar
