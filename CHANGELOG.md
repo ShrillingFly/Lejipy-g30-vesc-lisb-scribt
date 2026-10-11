@@ -6,7 +6,8 @@ empfohlene Version.
 
 | Version | Status | Kurz |
 |---|---|---|
-| [**Beta 3.2**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.2/VESC_Scripts/g30_dashboard_race.lisp) | zum Testen | Alarmanlage: piept + blinkt, wenn der Roller ausgeschaltet bewegt wird |
+| [**Beta 3.3**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.3/VESC_Scripts/g30_dashboard_race.lisp) | zum Testen | Race neu: Drive 60 km/h / 5 kW, Sport 80 km/h / 10 kW, Eco volle Leistung |
+| [Beta 3.2](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.2/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.3 | Alarmanlage: piept + blinkt, wenn der Roller ausgeschaltet bewegt wird |
 | [Beta 3.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.2 | wie 3.0, nur aufgeräumt: Skript 155 Zeilen kürzer |
 | [Beta 3.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.1 | frei konfigurierbare Anzeige, neue Normal-Werte |
 | [**Alpha 2.0**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-2.0/VESC_Scripts/g30_dashboard_race.lisp) | **stabil, auf `main`** | bewährter Stand, läuft auf echter Hardware |
@@ -39,8 +40,20 @@ Alternativ das ganze Repo auf einmal holen:
 git clone https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt
 ```
 
-Danach mit `git checkout beta-3.2` bzw. `git checkout history/beta-1.2`
+Danach mit `git checkout beta-3.3` bzw. `git checkout history/beta-1.2`
 zwischen den Versionen wechseln (`git branch -a` zeigt alle).
+
+## [Beta 3.3](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.3/VESC_Scripts/g30_dashboard_race.lisp) - Race-Profil neu abgestimmt (ungetestet)
+
+**Geändert:** nur die Race-Werte, sonst identisch mit Beta 3.2.
+
+| Race-Modus | Speed | Leistung | Field Weakening |
+|---|---|---|---|
+| Eco | kein Limit | volle Leistung | 20 A |
+| Drive | 60 km/h | 5 kW | aus |
+| Sport | 80 km/h | 10 kW | aus |
+
+Das Original-Profil bleibt unverändert.
 
 ## [Beta 3.2](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.2/VESC_Scripts/g30_dashboard_race.lisp) - Alarmanlage (ungetestet)
 
