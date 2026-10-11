@@ -98,11 +98,12 @@ Tuning nicht angefasst werden.
 - [x] Temperatur-Warnsymbol (Schwelle einstellbar)
 - [x] Fehlercodes als echte Ninebot-G30-Codes statt VESC-interner Nummern
 - [x] Entstörtes Knopf-Einlesen (3-fach-Mehrheitsentscheid)
+- [x] Frei konfigurierbare Anzeige (Stand/Fahrt, pro Profil), inkl. rot blinkender Anzeige
 - [ ] Alarmanlage: piept + blinkt, wenn der ausgeschaltete Roller bewegt
       wird – in Beta 3.5, noch nicht getestet
-- [ ] Frei konfigurierbare Anzeige (Stand/Fahrt, pro Profil) – in
+- [ ] Überhitzungsschutz: ab 110 °C Motor nur noch Drive – in
       [Beta 3.5](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.5/VESC_Scripts/g30_dashboard_race.lisp),
-      noch nicht auf der Straße getestet
+      noch nicht getestet
 
 ## Voraussetzungen
 

@@ -11,14 +11,7 @@
 ; those in the VESC motor/battery config (VESC Tool), this script only reads
 ; get-batt() which already accounts for whatever cutoffs you set there.
 ;
-; Changelog (newest first) - full details at the bottom of the file:
-;   v2.0  smoothed the speed limiter (speed-limit-start) to kill noise at the cap
-;   v1.9  race-eco: 20A field weakening (race-drive/race-sport untouched)
-;   v1.8  robust 3-sample button debounce (fixes phantom presses from brake noise)
-;   v1.7  race-mode idle display shows motor temp; button presses gated on speed
-;   v1.6  removed the alarm/anti-theft subsystem
-;   v1.5  race watt ceilings opened up; dashboard error codes mapped to Ninebot's own scheme
-;   v1.4  ADC thresholds raised, race speed/watts tuned down, fault-code printing added
+; This is v3.1. Full version history in CHANGELOG.md in the repository.
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -30,15 +23,15 @@
 ;  what you're doing.
 ; =====================================================================
 
-; --- Speed profiles --------------------------------------------------
+; --- 1) Speed profiles ------------------------------------------------
 ; speed = km/h target (max-speed) | current = current-scale, 0-1 (fraction
 ; of your configured motor max current) | watts = watt ceiling | fw = field
 ; weakening current in A (0 = off)
 
-; Original profile (default on power-up/lock, unchanged from upstream)
-(def eco-speed         (/ 7 3.6))    (def eco-current         0.6)  (def eco-watts         400)     (def eco-fw         0)
-(def drive-speed       (/ 17 3.6))   (def drive-current       0.7)  (def drive-watts       500)     (def drive-fw       0)
-(def sport-speed       (/ 22 3.6))   (def sport-current       1.0)  (def sport-watts       700)     (def sport-fw       0)
+; Original profile (default on power-up/lock)
+(def eco-speed         (/ 15 3.6))   (def eco-current         0.6)  (def eco-watts         450)     (def eco-fw         0)
+(def drive-speed       (/ 20 3.6))   (def drive-current       0.7)  (def drive-watts       650)     (def drive-fw       0)
+(def sport-speed       (/ 22 3.6))   (def sport-current       1.0)  (def sport-watts       1000)    (def sport-fw       0)
 
 ; Race profile (2x button press while holding brake+throttle to toggle)
 (def race-eco-speed    (/ 200 3.6))  (def race-eco-current    1.0)  (def race-eco-watts    100000)  (def race-eco-fw    20)
@@ -47,13 +40,31 @@
 
 (def race-enabled 1) ; 0 disables the Race-profile toggle gesture entirely (brake+throttle+2x press just does lock/unlock instead)
 
-; --- Tuning / hardware behavior ---------------------------------------
+; --- 2) Dashboard display ---------------------------------------------
+; Two fields, four slots each (standing still / riding, per profile).
+;
+;   MAIN  = the big number in the middle.
+;   BLINK = the error-code field -> anything non-zero shows up RED BLINKING.
+;           A real VESC fault always wins here, so it can never hide an error.
+;
+; Codes:  0 speed km/h   1 battery %   2 motor temp   3 controller temp
+;         4 trip km      5 cell volt x10 (41 = 4.1V)  6 off
+;
+; Code 5 needs si-battery-cells set in VESC Tool, otherwise it shows 0.
+
+;                        standing still        riding
+(def show-normal-idle    0)   (def show-normal-ride    0)  ; Original: always km/h
+(def show-race-idle      1)   (def show-race-ride      0)  ; Race: battery when stopped, km/h when riding
+
+(def blink-normal-idle   6)   (def blink-normal-ride   6)  ; Original: nothing blinking, ever
+(def blink-race-idle     6)   (def blink-race-ride     2)  ; Race: motor temp blinking red while riding
+
+; --- 3) Tuning / hardware behavior ------------------------------------
 (def software-adc 1)
 (def min-adc-throttle 0.3) ; V - throttle-held threshold for button gestures (raised from 0.1 to avoid ADC drift/noise false-triggering)
 (def min-adc-brake 0.3) ; V - brake-held threshold for button gestures (raised from 0.1 to avoid ADC drift/noise false-triggering)
 (def temp-warning-motor 100) ; degC - motor temp warning icon threshold
 (def temp-warning-fet 80) ; degC - FET temp warning icon threshold
-(def show-mot-temp-in-idle 1) ; 1 = show motor temp (instead of speed) on the dash while stopped, in Race mode
 (def min-speed 1) ; km/h - minimum speed to enable throttle and brake
 (def button-safety-speed (/ 0.1 3.6)) ; km/h - button gestures only register below this speed (safety)
 (def speed-limit-start 0.5) ; fraction of max-speed where the speed governor starts tapering current (VESC default 0.8) - lower = earlier/more gradual taper, less noise when you hit the cap
@@ -180,10 +191,49 @@
     }
 )
 
+; Picks which of a field's four configured slots applies right now:
+; Original vs Race profile (unlock), standing still vs riding (moving).
+(defun pick-display(normal-idle normal-ride race-idle race-ride moving)
+    (if (= unlock 1)
+        (if moving race-ride race-idle)
+        (if moving normal-ride normal-idle)
+    )
+)
+
+; Keeps a value inside the 0-255 range a dashboard frame byte can hold
+; (temperatures can go negative in winter, distance can grow past 255).
+(defun clamp-u8(v)
+    (if (< v 0)
+        0
+        (if (> v 255) 255 v)
+    )
+)
+
+; Turns a display code (see the table at the top of the file) into the
+; number actually written into the dashboard frame.
+(defun dash-value(code speed battery)
+    (clamp-u8
+        (cond
+            ((= code 0) speed)                ; speed in km/h
+            ((= code 1) battery)              ; battery %
+            ((= code 2) (get-temp-mot))       ; motor temperature
+            ((= code 3) (get-temp-fet))       ; controller/FET temperature
+            ((= code 4) (/ (get-dist) 1000))  ; trip distance, get-dist is in meters
+            ((= code 5)                       ; cell voltage x10, 0 if cell count unset
+                (let ((cells (conf-get 'si-battery-cells)))
+                    (if (> cells 0) (* (/ (get-vin) cells) 10) 0)
+                )
+            )
+            (t 0)                             ; 6 (or anything else) = off
+        )
+    )
+)
+
 (defun update-dash(buffer) ; Frame 0x64
     {
         (var current-speed (abs (* (get-lowest-speed) 3.6)))
         (var battery (*(get-batt) 100))
+        (var moving (> current-speed 1))
 
         ; mode field (1=drive, 2=eco, 4=sport, 8=charge, 16=off, 32=lock)
         (if (= off 1)
@@ -218,18 +268,29 @@
             (bufset-u8 tx-frame 10 0)
         )
 
+        ; main field - content configured at the top of the file
         (if (= lock 1)
             (bufset-u8 tx-frame 11 0) ; lock display
-            (if (= (+ show-mot-temp-in-idle unlock) 2) ; only in Race mode (unlock=1)
-                (if (> current-speed 1)
-                    (bufset-u8 tx-frame 11 current-speed)
-                    (bufset-u8 tx-frame 11 (get-temp-mot)))
-                (bufset-u8 tx-frame 11 current-speed)
-            )
+            (bufset-u8 tx-frame 11
+                (dash-value
+                    (pick-display show-normal-idle show-normal-ride show-race-idle show-race-ride moving)
+                    current-speed battery))
         )
 
-        ; error field - shown as a real Ninebot G30 error code
-        (bufset-u8 tx-frame 12 (fault-to-ninebot (get-fault)))
+        ; blink field (the dash's error-code field, shows red and blinking).
+        ; A real VESC fault always wins here and is shown as a Ninebot G30
+        ; error code; only when there is no fault is the field free for the
+        ; readout configured at the top of the file.
+        (if (= (get-fault) 0)
+            (if (= lock 1)
+                (bufset-u8 tx-frame 12 0) ; lock display
+                (bufset-u8 tx-frame 12
+                    (dash-value
+                        (pick-display blink-normal-idle blink-normal-ride blink-race-idle blink-race-ride moving)
+                        current-speed battery))
+            )
+            (bufset-u8 tx-frame 12 (fault-to-ninebot (get-fault)))
+        )
 
         ; calc crc
 
@@ -520,119 +581,6 @@
 (image-save)
 (main)
 
-; =====================================================================
-;  DETAILED CHANGELOG
-; =====================================================================
-;
-; v1.4 changes (troubleshooting a real dashboard):
-;   - min-adc-throttle/min-adc-brake raised from 0.1 -> 0.3V. At 0.1V a small
-;     ADC zero-offset/noise on the brake line was enough to make the button
-;     logic think the brake was constantly held, which made every double-press
-;     fall into the lock/race-toggle branch instead of ever cycling
-;     eco/drive/sport. This only affects the button GESTURE detection, not the
-;     actual throttle/brake pass-through (that still uses the raw ADC value).
-;     If mode-cycling is still unreliable, recalibrate ADC in VESC Tool ->
-;     App Settings -> ADC (check the resting voltage is near 0 for both lines).
-;   - race-eco/drive/sport-watts lowered from 1500000 -> 20000 W and
-;     race-eco-speed lowered from 999 -> 80 km/h. Passing a physically
-;     impossible target (near-infinite watts, a speed the motor can't reach
-;     without field weakening) makes the control loop hold max duty trying to
-;     get there, which is a likely cause of the "b3" (DRV / fault code 3)
-;     shown on the dashboard. 20000 W / 80 km/h is still far beyond what a
-;     G30 hub motor can do, so it still behaves as "no real limit" - tune
-;     these down to your actual motor/battery max current in VESC Tool if
-;     you want a real, hardware-matched ceiling instead.
-;   - Added fault-code printing to the VESC Tool terminal (see print-fault
-;     below) so you can see exactly when/what faults trip while testing.
-;
-; v1.5 changes:
-;   - Race watt ceilings opened back up (20000 -> 100000 W), and
-;     race-eco-speed raised again (80 -> 200 km/h). Real power delivery is
-;     throttle-proportional (the ADC pass-through), not something max-speed/
-;     l-watt-max force on their own - those are just ceilings, so raising
-;     them doesn't make the controller push current on its own. Only
-;     race-eco-speed/watts are "wide open"; race-drive (35 km/h) and
-;     race-sport (~48 km/h) keep their explicit speed targets, just with
-;     the same opened-up watt ceiling.
-;   - The dashboard's error field (and print-fault) now show a best-effort
-;     mapping to real Ninebot G30 error codes (fault-to-ninebot, see below)
-;     instead of VESC's raw internal fault number. VESC and Ninebot use two
-;     completely unrelated fault-code systems (there is no official VESC
-;     <-> Ninebot cross-reference) - this maps each VESC fault to the
-;     closest matching real Ninebot code (e.g. VESC FAULT_CODE_BRK -> "15"
-;     brake sensor abnormal, VESC FAULT_CODE_DRV -> "11" motor phase current
-;     abnormal) so what you see on the dash is a code you can actually look
-;     up. Codes with no sane G30 equivalent (encoder/resolver faults - this
-;     hardware has neither) fall back to "10" (generic comm/control-board
-;     error).
-;
-; v1.6 changes:
-;   - Removed the whole alarm/anti-theft subsystem: no more gyro/speed
-;     movement detection, no siren tones, no forced full-power auto-brake
-;     while locked. Locking (double-press without throttle/brake held) now
-;     only does the immobilizer part - cuts throttle, nothing else. All the
-;     "alarm" state, start-alarm/stop-alarm, play-tone/stop-tone and
-;     get-gyro code is gone.
-;   - No "walk mode" existed in this script to begin with, so there was
-;     nothing to remove for that.
-;
-; v1.7 changes:
-;   - The idle display (byte 11) in Race mode used to show battery % while
-;     stopped - the "b3" reported on a real dashboard was very likely just
-;     the battery percentage (e.g. "63") misread on this font, not a fault.
-;     Renamed show-batt-in-idle -> show-mot-temp-in-idle and it now shows
-;     motor temperature instead while stopped in Race mode.
-;   - button-logic now only counts a button edge towards presses while the
-;     board is actually stationary (same threshold as button-safety-speed).
-;     Previously, an edge picked up while the wheel was still spinning
-;     (e.g. noise on the button line from a hard e-brake stop with no field
-;     weakening) was counted immediately and could fire a mode/lock toggle
-;     the moment the wheel came to a stop, even though nobody touched the
-;     button. Edges seen while moving are now discarded via reset-button.
-;
-; v1.8 changes:
-;   - The v1.7 speed-gate alone wasn't enough: braking even at low/near-zero
-;     speed can still put noise on the button pin (it shares a wire with
-;     UART), and that showed up as the light toggling on its own under
-;     braking (a single phantom press instead of a double one). Replaced
-;     the single-read-plus-recheck debounce with read-button-pin: a 3-sample
-;     majority vote over 60ms (matching the fix the upstream m365fw/
-;     vesc_m365_dash project itself adopted for the same shared-wire noise
-;     problem). A brief glitch now needs 2 of 3 samples to agree before
-;     it's read as a real button state.
-;   - If phantom presses still happen after this, it's a hardware/wiring
-;     issue, not something more software can reliably fix: the upstream
-;     project's guide recommends adding a capacitor across 3.3V+GND (and
-;     across 5V+GND) to filter the button/UART supply, since braking hard
-;     with no field weakening pulls a lot of current through the same
-;     wiring loom.
-;
-; v1.9 changes:
-;   - Race-eco now runs 20A field weakening (race-eco-fw 0 -> 20).
-;     Race-drive and race-sport are untouched (still no field weakening).
-;     Lets the motor spin past its normal back-EMF ceiling in race-eco to
-;     actually reach its wide-open speed cap, at the cost of some extra
-;     heat/efficiency - keep an eye on temp-warning-motor/temp-warning-fet
-;     if you push it hard.
-;
-; v2.0 changes:
-;   - Added speed-limit-start (VESC's l-erpm-start), now set on every mode
-;     apply. Fixes "weird noises" when the motor hits max-speed, both in
-;     Original mode and in race-drive/race-sport (no field weakening in
-;     all three, so there's little headroom before the physical ceiling).
-;     VESC's speed governor doesn't cut power abruptly right at the cap -
-;     it starts tapering current at l-erpm-start (a fraction of max-speed,
-;     default 0.8 i.e. tapering only starts at 80% of the limit). That
-;     late, steep taper is what causes the chatter/whine at the limit.
-;     Lowered to 0.5 here so the taper starts earlier and is more gradual.
-;     Raise it back towards 0.8 if you'd rather have full power right up
-;     to the cap and don't mind the noise; lower it further (e.g. 0.3) for
-;     an even smoother/quieter approach.
-;
-; v2.1 changes:
-;   - Reorganized the top of the file: full multi-version changelog moved
-;     down here (out of the way), and the Original/Race speed profiles are
-;     now laid out as an aligned table (speed/current/watts/fw per line)
-;     instead of 4 separate lines per mode, so all the day-to-day tuning
-;     values are visible and editable in one compact block right at the
-;     top. No behavior changes in this version.
+; Version history: see CHANGELOG.md in the repository, which lists every
+; version, what is new in it and what it fixes:
+; https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/main/CHANGELOG.md
