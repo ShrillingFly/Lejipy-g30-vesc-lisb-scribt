@@ -6,7 +6,8 @@ empfohlene Version.
 
 | Version | Status | Kurz |
 |---|---|---|
-| [**Beta 3.3**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.3/VESC_Scripts/g30_dashboard_race.lisp) | zum Testen | Race neu: Drive 60 km/h / 5 kW, Sport 80 km/h / 10 kW, Eco volle Leistung |
+| [**Beta 3.4**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.4/VESC_Scripts/g30_dashboard_race.lisp) | zum Testen | wie 3.3, Race-Eco mit 35 A Field Weakening |
+| [Beta 3.3](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.3/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.4 | Race neu: Drive 60 km/h / 5 kW, Sport 80 km/h / 10 kW, Eco volle Leistung |
 | [Beta 3.2](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.2/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.3 | Alarmanlage: piept + blinkt, wenn der Roller ausgeschaltet bewegt wird |
 | [Beta 3.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.2 | wie 3.0, nur aufgeräumt: Skript 155 Zeilen kürzer |
 | [Beta 3.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.1 | frei konfigurierbare Anzeige, neue Normal-Werte |
@@ -40,8 +41,16 @@ Alternativ das ganze Repo auf einmal holen:
 git clone https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt
 ```
 
-Danach mit `git checkout beta-3.3` bzw. `git checkout history/beta-1.2`
+Danach mit `git checkout beta-3.4` bzw. `git checkout history/beta-1.2`
 zwischen den Versionen wechseln (`git branch -a` zeigt alle).
+
+## [Beta 3.4](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.4/VESC_Scripts/g30_dashboard_race.lisp) - mehr Field Weakening in Race-Eco (ungetestet)
+
+**Geändert:** Race-Eco Field Weakening von 20 A auf **35 A**. Sonst identisch
+mit Beta 3.3.
+
+Mehr Field Weakening = höhere Endgeschwindigkeit, aber deutlich mehr Wärme im
+Motor und Controller und mehr Akkuverbrauch bei hohem Tempo.
 
 ## [Beta 3.3](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.3/VESC_Scripts/g30_dashboard_race.lisp) - Race-Profil neu abgestimmt (ungetestet)
 

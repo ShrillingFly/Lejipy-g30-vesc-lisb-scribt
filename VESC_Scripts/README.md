@@ -19,7 +19,7 @@ oben rechts auf **Raw** → alles kopieren → in VESC Tool unter
 
 ## Andere Versionen
 
-Ältere Alphas/Betas und die aktuelle **Beta 3.3** (neue Features, noch nicht
+Ältere Alphas/Betas und die aktuelle **Beta 3.4** (neue Features, noch nicht
 auf der Straße getestet) liegen auf eigenen Branches – siehe
 [CHANGELOG.md](../CHANGELOG.md) im Hauptordner. Dort ist jede Version verlinkt
 und beschrieben, was neu ist und was behoben wurde.
