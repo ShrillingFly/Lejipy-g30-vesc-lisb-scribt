@@ -11,7 +11,7 @@
 ; those in the VESC motor/battery config (VESC Tool), this script only reads
 ; get-batt() which already accounts for whatever cutoffs you set there.
 ;
-; This is v3.4. Full version history in CHANGELOG.md in the repository.
+; This is v3.5. Full version history in CHANGELOG.md in the repository.
 
 ; -> Installation
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
@@ -76,6 +76,8 @@
 (def temp-warning-fet 80) ; degC - FET temp warning icon threshold
 (def min-speed 1) ; km/h - minimum speed to enable throttle and brake
 (def button-safety-speed (/ 0.1 3.6)) ; km/h - button gestures only register below this speed (safety)
+(def overheat-temp 110)    ; degC motor temp - above this only Drive is allowed (Eco/Sport blocked)
+(def overheat-release 100) ; degC - Eco/Sport can be selected again once the motor is below this
 (def speed-limit-start 0.5) ; fraction of max-speed where the speed governor starts tapering current (VESC default 0.8) - lower = earlier/more gradual taper, less noise when you hit the cap
 
 ; -> Code starts here (DO NOT CHANGE ANYTHING BELOW THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING)
@@ -102,6 +104,9 @@
 (def alarm-active 0)         ; 1 while the alarm is going off
 (def alarm-time (systime))   ; when the current burst started
 (def alarm-tick 0)           ; frame counter, drives the flashing
+
+; overheat state
+(def overheat 0)             ; 1 while the motor is too hot - forced to Drive
 
 ; last fault code seen, for print-fault below
 (def last-fault 0)
@@ -202,6 +207,7 @@
 
         (handle-lock)
         (handle-alarm (abs current-speed))
+        (handle-overheat)
         (print-fault)
     }
 )
@@ -432,7 +438,7 @@
                         }
                     )
                     {
-                        (if (= lock 0)
+                        (if (and (= lock 0) (= overheat 0)) ; no Eco/Sport while overheated
                             {
                                 (cond
                                     ((= speedmode 1) (set 'speedmode 4))
@@ -537,6 +543,34 @@
         }
         (set 'alarm-active 0) ; switched on, or alarm disabled -> never active
     )
+)
+
+;; Overheat protection: once the motor goes above overheat-temp the scooter
+;; is switched to Drive (in whichever profile is active) with a beep, and
+;; Eco/Sport can't be selected until it has cooled below overheat-release.
+;; The gap between the two values stops it flapping back and forth right at
+;; the limit. It does not switch back up on its own when it cools down - a
+;; sudden jump in power mid-ride would be a nasty surprise - you pick the
+;; mode again yourself by double-pressing.
+(defun handle-overheat()
+    {
+        (var mtemp (get-temp-mot))
+        (if (and (= overheat 0) (> mtemp overheat-temp))
+            {
+                (set 'overheat 1)
+                (if (not (= speedmode 1))
+                    {
+                        (set 'speedmode 1)
+                        (apply-mode)
+                    }
+                )
+                (set 'feedback 3) ; beep so you know why it got slower
+            }
+        )
+        (if (and (= overheat 1) (< mtemp overheat-release))
+            (set 'overheat 0)
+        )
+    }
 )
 
 (defun get-lowest-speed()

@@ -6,7 +6,8 @@ empfohlene Version.
 
 | Version | Status | Kurz |
 |---|---|---|
-| [**Beta 3.4**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.4/VESC_Scripts/g30_dashboard_race.lisp) | zum Testen | wie 3.3, Race-Eco mit 35 A Field Weakening |
+| [**Beta 3.5**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.5/VESC_Scripts/g30_dashboard_race.lisp) | zum Testen | Überhitzungsschutz: ab 110 °C Motor nur noch Drive |
+| [Beta 3.4](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.4/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.5 | wie 3.3, Race-Eco mit 35 A Field Weakening |
 | [Beta 3.3](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.3/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.4 | Race neu: Drive 60 km/h / 5 kW, Sport 80 km/h / 10 kW, Eco volle Leistung |
 | [Beta 3.2](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.2/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.3 | Alarmanlage: piept + blinkt, wenn der Roller ausgeschaltet bewegt wird |
 | [Beta 3.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.2 | wie 3.0, nur aufgeräumt: Skript 155 Zeilen kürzer |
@@ -41,8 +42,28 @@ Alternativ das ganze Repo auf einmal holen:
 git clone https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt
 ```
 
-Danach mit `git checkout beta-3.4` bzw. `git checkout history/beta-1.2`
+Danach mit `git checkout beta-3.5` bzw. `git checkout history/beta-1.2`
 zwischen den Versionen wechseln (`git branch -a` zeigt alle).
+
+## [Beta 3.5](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.5/VESC_Scripts/g30_dashboard_race.lisp) - Überhitzungsschutz (ungetestet)
+
+**Neu:** Wird der Motor heißer als **110 °C**, schaltet der Roller mit einem
+Piepen auf **Drive** – im gerade aktiven Profil, also Original-Drive oder
+Race-Drive. Eco und Sport lassen sich dann nicht mehr anwählen, bis der Motor
+unter **100 °C** abgekühlt ist.
+
+```lisp
+(def overheat-temp 110)    ; ab hier nur noch Drive
+(def overheat-release 100) ; ab hier Eco/Sport wieder wählbar
+```
+
+- Der Abstand zwischen 110 und 100 °C verhindert, dass er an der Grenze ständig
+  hin- und herschaltet.
+- Nach dem Abkühlen schaltet er **nicht** von selbst wieder hoch – ein
+  plötzlicher Leistungssprung mitten in der Fahrt wäre gefährlich. Du wählst
+  den Modus selbst wieder per Doppelklick.
+- Braucht einen Temperatursensor im Motor, der im VESC Tool eingerichtet ist.
+  Ohne Sensor greift der Schutz nicht.
 
 ## [Beta 3.4](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.4/VESC_Scripts/g30_dashboard_race.lisp) - mehr Field Weakening in Race-Eco (ungetestet)
 
