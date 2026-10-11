@@ -10,9 +10,10 @@ empfohlene Version.
 | [Beta 3.4](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.4/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.5 | wie 3.3, Race-Eco mit 35 A Field Weakening |
 | [Beta 3.3](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.3/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.4 | Race neu: Drive 60 km/h / 5 kW, Sport 80 km/h / 10 kW, Eco volle Leistung |
 | [Beta 3.2](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.2/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.3 | Alarmanlage: piept + blinkt, wenn der Roller ausgeschaltet bewegt wird |
-| [Beta 3.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.2 | wie 3.0, nur aufgeräumt: Skript 155 Zeilen kürzer |
+| [Beta 3.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.1/VESC_Scripts/g30_dashboard_race.lisp) | getestet → **Alpha 3.0** | wie 3.0, nur aufgeräumt: Skript 155 Zeilen kürzer |
 | [Beta 3.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.0/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.1 | frei konfigurierbare Anzeige, neue Normal-Werte |
-| [**Alpha 2.0**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-2.0/VESC_Scripts/g30_dashboard_race.lisp) | **stabil, auf `main`** | bewährter Stand, läuft auf echter Hardware |
+| [**Alpha 3.0**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-3.0/VESC_Scripts/g30_dashboard_race.lisp) | **stabil, auf `main`** | getestete Beta 3.1: konfigurierbare Anzeige, neue Normal-Werte |
+| [Alpha 2.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-2.0/VESC_Scripts/g30_dashboard_race.lisp) | vorherige Alpha | bewährter Stand vor der Anzeige-Konfiguration |
 | [Release 1.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/release-1.0/VESC_Scripts/g30_dashboard_race.lisp) | Vorgänger | Tuning-Werte als Tabelle oben im Skript |
 | [Beta 2.1](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-2.1/VESC_Scripts/g30_dashboard_race.lisp) | alt | Geräusch-Fix am Speed-Limit |
 | [Beta 2.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/beta-2.0/VESC_Scripts/g30_dashboard_race.lisp) | alt | 20A Field Weakening in Race-Eco |
@@ -44,6 +45,23 @@ git clone https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt
 
 Danach mit `git checkout beta-3.5` bzw. `git checkout history/beta-1.2`
 zwischen den Versionen wechseln (`git branch -a` zeigt alle).
+
+## [Alpha 3.0 (Stabil)](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-3.0/VESC_Scripts/g30_dashboard_race.lisp) - Beta 3.1 auf der Straße getestet
+
+Beta 3.1 wurde auf echter Hardware getestet und läuft – deshalb ist sie jetzt
+die neue Alpha und liegt auf `main`. Die Datei ist **byte-genau** die getestete
+Beta 3.1, nichts nachträglich verändert.
+
+**Gegenüber Alpha 2.0 neu:**
+- Frei konfigurierbare Anzeige (im Stand / während der Fahrt, pro Profil),
+  inklusive rot blinkender Anzeige im Fehlercode-Feld.
+- Original-Profil: Eco 15 km/h / 450 W, Drive 20 km/h / 650 W,
+  Sport 22 km/h / 1000 W.
+- Aufgeräumtes Script, Einstellungen nummeriert.
+
+**Noch nicht enthalten** (weiter in Beta 3.5 zum Testen): Alarmanlage, neue
+Race-Werte (Drive 60 / Sport 80 km/h, 35 A Field Weakening in Eco),
+Überhitzungsschutz.
 
 ## [Beta 3.5](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.5/VESC_Scripts/g30_dashboard_race.lisp) - Überhitzungsschutz (ungetestet)
 
