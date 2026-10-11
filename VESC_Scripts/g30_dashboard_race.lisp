@@ -64,7 +64,7 @@
 ; If it gets rolled or pushed while off, the display flashes and beeps.
 ; The scooter stays switched off the whole time - the alarm only changes
 ; what is sent to the display, it never enables the motor.
-(def alarm-enabled 1)  ; 1 = alarm on, 0 = off
+(def alarm-enabled 0)  ; 1 = alarm on, 0 = off (default: off)
 (def alarm-speed 2)    ; km/h - movement above this while off sets it off
 (def alarm-seconds 10) ; s - how long it flashes and beeps per trigger
 
