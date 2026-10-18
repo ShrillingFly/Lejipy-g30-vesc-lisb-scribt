@@ -19,12 +19,9 @@ Alle Einstellungen (Fahrmodi, Race, Anzeige, Alarm, Überhitzungsschutz)
 änderst du dann in VESC Tool unter **App UI**, ohne Code anzufassen. Sie
 werden im EEPROM des VESC gespeichert.
 
-1. `g30_dashboard_race.vescpkg` holen: unter
-   [Actions](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/actions)
-   den neuesten Lauf auf `beta-4.0` öffnen und unten bei **Artifacts**
-   herunterladen (ZIP entpacken) – oder selbst bauen: im Ordner
-   [`VESC_Package`](VESC_Package) `vesc_tool_7.00.exe --buildPkgFromDesc pkgdesc.qml`
-   ausführen.
+1. **[g30_dashboard_race.vescpkg herunterladen](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/releases/download/v4.0-beta/g30_dashboard_race.vescpkg)**
+   (auch unter [Releases](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/releases)
+   und im Ordner [`VESC_Package`](VESC_Package)).
 2. VESC Tool → **VESC Packages → Load Custom** → Datei auswählen → **Install**.
 3. **App UI** öffnen, Werte prüfen, **Speichern**.
 4. ADC-App einrichten (siehe unten).
