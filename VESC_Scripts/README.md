@@ -1,4 +1,8 @@
-# ⚠ Dieser Branch: **Beta 3.5** – NICHT die Alpha
+# ⚠ Diese Datei: **Beta 3.5** (Copy-Paste) – NICHT die Alpha
+
+> **Beta 4.0** ist ein VESC Package mit App UI und liegt im Ordner
+> [`VESC_Package`](../VESC_Package). Die Datei hier ist unverändert die
+> Copy-Paste-Version von Beta 3.5.
 
 Die Datei `g30_dashboard_race.lisp` in **diesem Branch** ist die Beta 3.5:
 neue Features, **noch nicht auf der Straße getestet**.

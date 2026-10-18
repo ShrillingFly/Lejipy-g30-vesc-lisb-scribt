@@ -6,7 +6,8 @@ empfohlene Version.
 
 | Version | Status | Kurz |
 |---|---|---|
-| [**Beta 3.5**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.5/VESC_Scripts/g30_dashboard_race.lisp) | zum Testen | Überhitzungsschutz: ab 110 °C Motor nur noch Drive |
+| [**Beta 4.0**](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/beta-4.0/VESC_Package) | zum Testen | VESC Package mit App UI, Einstellungen im EEPROM |
+| [Beta 3.5](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.5/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 4.0 | Überhitzungsschutz: ab 110 °C Motor nur noch Drive |
 | [Beta 3.4](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.4/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.5 | wie 3.3, Race-Eco mit 35 A Field Weakening |
 | [Beta 3.3](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.3/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.4 | Race neu: Drive 60 km/h / 5 kW, Sport 80 km/h / 10 kW, Eco volle Leistung |
 | [Beta 3.2](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/beta-3.2/VESC_Scripts/g30_dashboard_race.lisp) | ersetzt durch 3.3 | Alarmanlage: piept + blinkt, wenn der Roller ausgeschaltet bewegt wird |
@@ -45,6 +46,29 @@ git clone https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt
 
 Danach mit `git checkout beta-3.5` bzw. `git checkout history/beta-1.2`
 zwischen den Versionen wechseln (`git branch -a` zeigt alle).
+
+## [Beta 4.0](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/tree/beta-4.0/VESC_Package) - VESC Package mit App UI (ungetestet)
+
+**Neu:** Das Script gibt es jetzt als **VESC Package** (`VESC_Package/`) mit
+eigener Benutzeroberfläche in VESC Tool – nach dem Vorbild von Izunas
+[VESC Scooter Support](https://github.com/1zun4/vesc_scooter_support).
+
+- Installation über **VESC Packages → Load Custom** statt Copy-Paste.
+- **App UI** mit vier Tabs: **Allgemein**, **Original**, **Race**, **Schutz**.
+  Knöpfe **Laden**, **Speichern**, **Standard**.
+- Einstellungen liegen im **EEPROM** des VESC und bleiben nach einem Neustart
+  erhalten. Speichern übernimmt die Werte sofort, ohne Neustart.
+- Werte werden vor dem Speichern auf sinnvolle Bereiche geprüft; Komma und
+  Punkt werden beide akzeptiert.
+- GitHub baut die `.vescpkg` bei jedem Push automatisch (Actions).
+
+**Unverändert:** Fahrlogik, Gesten, Race-Umschaltung, Anzeige, Fehlercodes,
+Alarm und Überhitzungsschutz sind 1:1 Beta 3.5. Die Standardwerte sind exakt
+die Werte aus Beta 3.5.
+
+**Hinweis:** Beim ersten Start schreibt das Package seine Standardwerte ins
+EEPROM. War vorher ein anderes Package (z.B. Izunas) installiert, werden
+dessen Werte dabei überschrieben.
 
 ## [Alpha 3.0 (Stabil)](https://github.com/ShrillingFly/Lejipy-g30-vesc-lisb-scribt/blob/history/alpha-3.0/VESC_Scripts/g30_dashboard_race.lisp) - Beta 3.1 auf der Straße getestet
 
